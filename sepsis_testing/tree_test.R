@@ -15,8 +15,7 @@ text(tree.carseats, pretty = 0)
 
 
 # sepsis data
-df <- fread("all_locations_redistributed.csv")
-# df <- fread("data_subset.csv")
+df <- fread("/ihme/cod/prep/mcod/process_data/sepsis_nonfatal_model/01_prep_regression/2018-11-05/all_locations_redistributed.csv")
 df$cases_explicit[is.na(df$cases_explicit)] <- 0
 df$cases_implicit[is.na(df$cases_implicit)] <- 0
 df$deaths_explicit[is.na(df$deaths_explicit)] <- 0
