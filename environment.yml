@@ -22,7 +22,7 @@ dependencies:
   - sqlite=3.30.1
   - wheel=0.33.6
   - pip=19.3.1
-  - pip:
+pip:
     - vs2015_runtime=14.16.27012
     - icc_rt=2019.0.0
     - wincertstore=0.2
