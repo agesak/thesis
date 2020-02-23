@@ -1,13 +1,10 @@
-"""Run formatting and mapping steps for mcod data.
-
-Note: These steps are separated in the causes of death pipeline. They are combined here
-into one step due to the limited use nature of many mcod datasets which cannot be saved
-at the individual record level outside the L drive.
-"""
+"""Run formatting and mapping steps for mcod data."""
 import sys
 import numpy as np
 from importlib import import_module
-from data_prep.mcod_mapping import MCoDMapper
+from thesis_data_prep.mcod_mapping import MCoDMapper
+from thesis_data_prep.launch_mcod_mapping import MCauseLauncher
+from thesis_utils.directories import get_limited_use_directory
 from mcod_prep.utils.logging import ymd_timestamp
 from mcod_prep.utils.causes import get_most_detailed_inj_causes
 from cod_prep.utils import print_log_message
@@ -116,14 +113,27 @@ def run_pipeline(year, source, int_cause, code_system_id, code_map_version_id,
     return df
 
 
+def write_outputs(df, int_cause, source, nid, extract_type_id):
+    """
+    write_phase_output - for nonlimited use data
+    write to limited use folder - for limited use data"""
+
+    if source in MCauseLauncher.limited_sources:
+        limited_dir = get_limited_use_directory(source, int_cause)
+        print_log_message(f"writing {source} to limited use dir")
+        df.to_csv(f"{limited_dir}/{nid}_{extract_type_id}_format_map.csv", index=False)
+    else:
+        print_log_message(f"Writing nid {nid}, extract_type_id {extract_type_id}")
+        write_phase_output(df, "format_map", nid, extract_type_id, ymd_timestamp(),
+                           sub_dirs=f"{int_cause}/thesis")
+
+
 def main(year, source, int_cause, code_system_id, code_map_version_id,
          cause_set_version_id, nid, extract_type_id, data_type_id):
     """Run pipeline."""
     df = run_pipeline(year, source, int_cause, code_system_id, code_map_version_id,
                       cause_set_version_id, nid, extract_type_id, data_type_id)
-    print_log_message(f"Writing nid {nid}, extract_type_id {extract_type_id}")
-    write_phase_output(df, "format_map", nid, extract_type_id, ymd_timestamp(),
-                       sub_dirs=f"{int_cause}/thesis")
+    write_outputs(df, int_cause, source, nid, extract_type_id)
 
 
 if __name__ == '__main__':
