@@ -34,8 +34,7 @@ class MCauseLauncher(object):
     location_set_version_id = 420
     cause_set_version_id = 357
     thesis_code = "/homes/agesak/thesis/thesis_data_prep"
-    limited_sources = ["TWN_MOH", "MEX_INEGI", "BRA_SIM"]
-    # , "USA_NVSS"
+    limited_sources = ["TWN_MOH", "MEX_INEGI", "BRA_SIM", "USA_NVSS"]
 
     def __init__(self, run_filters):
         self.run_filters = run_filters
