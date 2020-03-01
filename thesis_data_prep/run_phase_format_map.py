@@ -22,6 +22,9 @@ def get_formatting_method(source, data_type_id, year, drop_p2):
     else:
         clean_source = 'clean_' + source.lower()
         args = [year, drop_p2]
+        # machine learning argument only for USA
+        if source == "USA_NVSS":
+            args += [True]
     try:
         formatting_method = getattr(
             import_module(f"mcod_prep.datasets.{clean_source}"), f"{clean_source}"
@@ -86,12 +89,22 @@ def run_pipeline(year, source, int_cause, code_system_id, code_map_version_id,
     Mapper = MCoDMapper(int_cause, code_system_id, code_map_version_id, drop_p2=drop_p2)
     df = Mapper.get_computed_dataframe(df)
 
+    cause_cols = [x for x in list(df) if ("cause" in x) & ~(
+        x.endswith("code_original")) & ~(x.endswith(f"{int_cause}"))]
+    cause_cols.remove("cause_id")
+    # keep original "cause" information for "cause" col is a string name in CoD cause map
+    # after mapping to cause ids - (ex code id  103591)
+    if source == "USA_NVSS":
+        for col in cause_cols:
+            df.loc[~(df[f"{col}"].str.match("(^[A-Z][0-9]{2,4}$)|(^0000$)")),
+                   col] = df[f"{col}_code_original"]
+
     # subset to rows where UCOD is injuries or any death is X59/y34
-    df = df[[x for x in list(df) if not x.endswith(
-        f"{int_cause}")] + [f"{int_cause}",
-                            f"pII_{int_cause}", f"cause_{int_cause}"]]
+    df = df[[x for x in list(df) if not ((x.endswith(f"{int_cause}")) | (
+        x.endswith("code_original")))] + [
+        f"{int_cause}", f"pII_{int_cause}", f"cause_{int_cause}"]]
     causes = get_most_detailed_inj_causes(int_cause, cause_set_id=4)
-    df = df.loc[(df.cause_id.isin(causes)) | (df[f"{int_cause}"] == 1)]
+    df = df.loc[(df.cause_id.isin(causes)) | ((df[f"{int_cause}"] == 1) & df.cause_id == 743)]
 
     # some edits to cause_cols for BoW
     multiple_cause_cols = [x for x in list(df) if "cause" in x]
@@ -100,15 +113,6 @@ def run_pipeline(year, source, int_cause, code_system_id, code_map_version_id,
         "0000", np.NaN).replace("other", np.NaN)
     df["cause_info"] = df[[x for x in list(df) if "multiple_cause" in x]].fillna(
         "").astype(str).apply(lambda x: " ".join(x), axis=1)
-    # df = df[["cause_id", "cause_info", f"{int_cause}", f"pII_{int_cause}"]]
-
-    # skipping this for now because theres a groupby in here
-    # print_memory_timestamp(df, "Filtering cause-age-sex restrictions")
-    # Corrector = RestrictionsCorrector(
-    #     code_system_id, cause_set_version_id, collect_diagnostics=False, verbose=True,
-    #     groupby_cols=group_cols, value_cols=value_cols
-    # )
-    # df = Corrector.get_computed_dataframe(df)
 
     return df
 

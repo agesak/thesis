@@ -29,7 +29,7 @@ class MCauseLauncher(object):
     # 'ITA_FVG_LINKAGE': '1G', 'NZL_LINKAGE_NMDS': '3G',
     source_memory_dict = {
         'TWN_MOH': '2G', 'MEX_INEGI': '10G', 'BRA_SIM': '15G', 'USA_NVSS': '20G',
-        'COL_DANE': '2G', 'ZAF_STATSSA': '3G'}
+        'COL_DANE': '2G', 'ZAF_STATSSA': '3G', 'ITA_ISTAT': '8G'}
 
     location_set_version_id = 420
     cause_set_version_id = 357
@@ -65,7 +65,12 @@ class MCauseLauncher(object):
     def launch_format_map(self, year, source, int_cause, code_system_id,
                           code_map_version_id, nid, extract_type_id, data_type_id):
         """Submit qsub for format_map phase."""
+        # remove existing output
         delete_claude_output('format_map', nid, extract_type_id, sub_dirs=f"{int_cause}/thesis/")
+        if source in self.limited_sources:
+            limited_dir = get_limited_use_directory(source, int_cause)
+            if os.path.exists(f"{limited_dir}/{nid}_{extract_type_id}_format_map.csv"):
+                os.remove(f"{limited_dir}/{nid}_{extract_type_id}_format_map.csv")
         worker = f"{self.thesis_code}/run_phase_format_map.py"
         params = [int(year), source, int_cause, int(code_system_id), int(code_map_version_id),
                   int(self.cause_set_version_id), int(nid), int(extract_type_id), int(data_type_id)]
@@ -81,6 +86,7 @@ class MCauseLauncher(object):
         else:
             runtime = '01::00'
 
+
         submit_mcod(
             jobname, 'python', worker, cores=1, memory=memory, params=params,
             verbose=True, logging=True, jdrive=True, runtime=runtime)
@@ -90,11 +96,13 @@ class MCauseLauncher(object):
             limited_dir = get_limited_use_directory(source, int_cause)
             if not os.path.exists(f"{limited_dir}/{nid}_{extract_type_id}_format_map.csv"):
                 print_log_message(
-                    f"no output found for {source} year {year_id} nid: {nid}, extract_type_id: {extract_type_id}")
+                    f"no output found for {source} year {year_id} nid: {nid},"
+                    f"extract_type_id: {extract_type_id}")
         else:
             if not check_output_exists(phase, nid, extract_type_id, sub_dirs=f"{int_cause}/thesis"):
                 print_log_message(
-                    f"no output found for {source} year: {year_id} nid: {nid}, extract_type_id: {extract_type_id}")
+                    f"no output found for {source} year: {year_id} nid: {nid},"
+                    f"extract_type_id: {extract_type_id}")
 
     def launch(self):
         datasets = self.prep_run_filters()
@@ -112,7 +120,8 @@ class MCauseLauncher(object):
             for row in datasets.itertuples():
                 nid, extract_type_id = row.Index
                 for int_cause in self.run_filters['intermediate_causes']:
-                    self.launch_check_output(row.source, int_cause, nid, extract_type_id, row.year_id, "format_map")
+                    self.launch_check_output(row.source, int_cause, nid, extract_type_id,
+                                             row.year_id, "format_map")
 
 
 if __name__ == '__main__':
