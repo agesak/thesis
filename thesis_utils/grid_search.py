@@ -1,3 +1,5 @@
+# https://stackoverflow.com/questions/50285973/pipeline-multiple-classifiers
+
 from sklearn.base import BaseEstimator
 
 class ClfSwitcher(BaseEstimator):
