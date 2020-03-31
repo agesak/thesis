@@ -1,9 +1,11 @@
 import pandas as pd
-import sys
 import numpy as np
+import pickle
+import sys
 import ast
 
 from cod_prep.utils.misc import print_log_message
+from cod_prep.claude.claude_io import makedirs_safely
 from thesis_utils.grid_search import ClfSwitcher
 
 from sklearn.feature_extraction.text import CountVectorizer
@@ -37,16 +39,9 @@ def format_params(model, param):
     return params
 
 
-def main(param, model, model_dir, int_cause):
-
-    train_df = pd.read_csv(f"{model_dir}/train_df.csv")
-    # test_df = pd.read_csv(f"{model_dir}/test_df.csv")
-
-    # model_params = ast.literal_eval(model_params)
-
-    model_params = format_params(model, param)
-
-    print(model_params)
+# precision, sensitivity, chance-corrected concordance (CCC)
+# chance-corrected cause-specific mortality fraction (CCCSMF) accuracy
+def run_pipeline(model, train_df, model_params, write_dir):
 
     pipeline = Pipeline([
         ("bow", CountVectorizer(lowercase=False)),
@@ -56,11 +51,26 @@ def main(param, model, model_dir, int_cause):
     model_params.update({"clf__estimator": [eval(model)()]})
     custom_scorer = make_scorer(
         precision_score, greater_is_better=True, average="micro")
-    gscv = GridSearchCV(pipeline, model_params, cv=2,
+    gscv = GridSearchCV(pipeline, model_params, cv=5,
                         scoring=custom_scorer, n_jobs=-1, verbose=6)
     grid_results = gscv.fit(train_df["cause_info"], train_df["cause_id"])
-    # save this in maybe a df? and also save value of scoring metric to append all together and compare
-    print(grid_results.best_params_)
+
+    print_log_message("saving model results")
+    results = pd.DataFrame.from_dict(grid_results.cv_results_)
+    results.to_csv(f"{write_dir}/summary_stats_microprecision.csv", index=False)
+
+
+def main(param, model, model_dir, int_cause, short_name):
+
+    write_dir = f"{model_dir}/{short_name}/model_{param}"
+    makedirs_safely(write_dir)
+
+    train_df = pd.read_csv(f"{model_dir}/train_df.csv")
+    model_params = format_params(model, param)
+
+    run_pipeline(model, train_df, model_params, write_dir)
+
+
 
 
 if __name__ == '__main__':
@@ -69,9 +79,9 @@ if __name__ == '__main__':
     model = str(sys.argv[2])
     model_dir = str(sys.argv[3])
     int_cause = str(sys.argv[4])
-    print(model_params, model, model_dir, int_cause)
+    short_model = str(sys.argv[5])
 
-    main(model_params, model, model_dir, int_cause)
+    main(model_params, model, model_dir, int_cause, short_model)
 
 
 # pipeline = Pipeline([

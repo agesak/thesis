@@ -81,7 +81,7 @@ def create_train_test(df, test, int_cause):
 
 
 def str2bool(v):
-    """this should be somewhere else"""
+    """https://stackoverflow.com/questions/15008758/parsing-boolean-values-with-argparse"""
     if isinstance(v, bool):
         return v
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
