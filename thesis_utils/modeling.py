@@ -40,6 +40,8 @@ def read_in_data(int_cause):
 
 
 def create_train_test(df, test, int_cause):
+    """Create train/test datasets, if running tests,
+    randomly sample from all locations so models don't take forever to run"""
 
     locs = get_location_metadata(gbd_round_id=6, location_set_id=35)
 
