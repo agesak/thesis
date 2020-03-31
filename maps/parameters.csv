@@ -1,0 +1,4 @@
+RandomForestClassifier,RandomForestClassifier_value,RandomForestClassifier_dtype
+clf__estimator__n_estimators,"200,100",int
+clf__estimator__max_features,auto,string
+clf__estimator__max_depth,2,int
