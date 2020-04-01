@@ -12,3 +12,23 @@ model_dict = ModelLauncher.model_dict
 # read in best model results for each model type
 # take these model to run on test datasets (so be able to generate 500 from dirichlet)
 # generate evaluation metrics (precision, accuracy, ccc, cccsmfa on individual results?)
+
+
+# def measure_prediction_quality(csmf_pred, y_test):
+#     """Calculate population-level prediction quality (CSMF Accuracy)
+    
+#     Parameters
+#     ----------
+#     csmf_pred : pd.Series, predicted distribution of causes
+#     y_test : array-like, labels for test dataset
+    
+#     Results
+#     -------
+#     csmf_acc : float
+#     """
+    
+#     csmf_true = pd.Series(y_test).value_counts() / float(len(y_test))
+#     temp = np.abs(csmf_true-csmf_pred)
+#     csmf_acc = 1 - temp.sum()/(2*(1-np.min(csmf_true)))
+
+#     return csmf_acc

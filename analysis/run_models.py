@@ -49,15 +49,29 @@ def run_pipeline(model, train_df, model_params, write_dir):
     ])
 
     model_params.update({"clf__estimator": [eval(model)()]})
-    custom_scorer = make_scorer(
+
+    precision_scorer = make_scorer(
         precision_score, greater_is_better=True, average="micro")
+    # my understanding is that this is the same as sensitivity
+    # https://scikit-learn.org/stable/modules/generated/sklearn.metrics.recall_score.html
+    # tp / (tp + fn)
+    recall_scorer = make_scorer(
+        recall_score, greater_is_better=True, average="micro")
+
+    scoring = {"precision": precision_scorer,
+                "sensitivity": recall_scorer}
+
     gscv = GridSearchCV(pipeline, model_params, cv=5,
-                        scoring=custom_scorer, n_jobs=-1, verbose=6)
+                        scoring=scoring, n_jobs=-1,
+                        # just taking wild guesses here people
+                        refit="precision", verbose=6)
+
     grid_results = gscv.fit(train_df["cause_info"], train_df["cause_id"])
 
     print_log_message("saving model results")
     results = pd.DataFrame.from_dict(grid_results.cv_results_)
-    results.to_csv(f"{write_dir}/summary_stats_microprecision.csv", index=False)
+    # will change this name for each metric
+    results.to_csv(f"{write_dir}/summary_stats.csv", index=False)
 
 
 def main(param, model, model_dir, int_cause, short_name):

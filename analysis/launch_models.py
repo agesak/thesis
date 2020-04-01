@@ -100,7 +100,6 @@ class ModelLauncher():
 
 
 if __name__ == "__main__":
-    ugh = list(ModelLauncher.model_dict.keys())
     parser = argparse.ArgumentParser(description="")
     parser.add_argument(
         "--phase", help="", required=True,
