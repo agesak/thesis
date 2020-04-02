@@ -90,3 +90,43 @@ def str2bool(v):
         return False
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
+
+
+# def measure_prediction_quality(csmf_pred, y_test):
+#     """Calculate population-level prediction quality (CSMF Accuracy)
+    
+#     Parameters
+#     ----------
+#     csmf_pred : pd.Series, predicted distribution of causes
+#     y_test : array-like, labels for test dataset
+    
+#     Results
+#     -------
+#     csmf_acc : float
+#     """
+    
+#     csmf_true = pd.Series(y_test).value_counts() / float(len(y_test))
+#     temp = np.abs(csmf_true-csmf_pred)
+#     csmf_acc = 1 - temp.sum()/(2*(1-np.min(csmf_true)))
+#     return csmf_acc
+
+
+def calculate_cccsmfa(y_true, y_pred):
+    # https://stackoverflow.com/questions/32401493/how-to-create-customize-your-own-scorer-function-in-scikit-learn
+    # built from https://github.com/aflaxman/siaman16-va-minitutorial/blob/master/1-tutorial-notebooks/4-va_csmf.ipynb
+    # y true is true cause ids
+    # y pred is predicted cause ids
+
+    random_allocation = 0.632
+    
+    csmf_true = pd.Series(y_true).value_counts()/float(len(y_true))
+    csmf_pred = pd.Series(y_pred).value_counts()/float(len(y_pred))
+    numerator = np.abs(csmf_true - csmf_pred)
+    # first get csmfa
+    csmfa = (1 - numerator.sum())/(2*(1-np.min(csmf_true)))
+
+    # then get cccsmfa
+    cccsmfa = (csmfa-random_allocation)/(1-random_allocation)
+
+    return cccsmfa
+
