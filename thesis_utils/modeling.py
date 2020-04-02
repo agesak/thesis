@@ -123,7 +123,7 @@ def calculate_cccsmfa(y_true, y_pred):
     csmf_pred = pd.Series(y_pred).value_counts()/float(len(y_pred))
     numerator = np.abs(csmf_true - csmf_pred)
     # first get csmfa
-    csmfa = (1 - numerator.sum())/(2*(1-np.min(csmf_true)))
+    csmfa = 1 - (numerator.sum())/(2*(1-np.min(csmf_true)))
 
     # then get cccsmfa
     cccsmfa = (csmfa-random_allocation)/(1-random_allocation)
