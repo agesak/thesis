@@ -130,3 +130,20 @@ def calculate_cccsmfa(y_true, y_pred):
 
     return cccsmfa
 
+
+# could try to have a parameter for number causes (that could specify in the make_scorer), but for now just hard code
+def calculate_concordance(y_true, y_pred):
+
+    # get an array of the cause_ids in my data
+    causes = cause_ids
+
+    for cause in causes:
+        # axis may be wrong here
+        denom = (y_true==cause).sum(axis=1)
+        # denom = np.array(n_j, dtype=float)  # ensure that we get floating point division
+        change = ((y_true==cause)&(y_pred==cause)).sum(axis=1)/denom # check the axis
+        causes = np.where(causes==causes, new_cause, causes)
+        
+    concordance = np.mean(causes, axis=0)
+
+    return concordance

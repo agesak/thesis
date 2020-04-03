@@ -1,12 +1,12 @@
 import pandas as pd
 import numpy as np
-import pickle
 import sys
 import ast
 
 from cod_prep.utils.misc import print_log_message
 from cod_prep.claude.claude_io import makedirs_safely
 from thesis_utils.grid_search import ClfSwitcher
+from thesis_utils.modeling import calculate_cccsmfa
 
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.ensemble import RandomForestClassifier
@@ -57,14 +57,17 @@ def run_pipeline(model, train_df, model_params, write_dir):
     # tp / (tp + fn)
     recall_scorer = make_scorer(
         recall_score, greater_is_better=True, average="micro")
+    cccsfma_scorer = make_scorer(
+        calculate_cccsmfa, greater_is_better=True)
 
     scoring = {"precision": precision_scorer,
-                "sensitivity": recall_scorer}
+                "sensitivity": recall_scorer,
+                "ccscfma": cccsfma_scorer}
 
     gscv = GridSearchCV(pipeline, model_params, cv=5,
                         scoring=scoring, n_jobs=-1,
                         # just taking wild guesses here people
-                        refit="precision", verbose=6)
+                        refit="cccsfma", verbose=6)
 
     grid_results = gscv.fit(train_df["cause_info"], train_df["cause_id"])
 
