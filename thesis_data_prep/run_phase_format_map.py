@@ -95,9 +95,10 @@ def run_pipeline(year, source, int_cause, code_system_id, code_map_version_id,
     # keep original "cause" information for "cause" col is a string name in CoD cause map
     # after mapping to cause ids - (ex code id  103591)
     if source == "USA_NVSS":
-        for col in cause_cols:
-            df.loc[~(df[f"{col}"].str.match("(^[A-Z][0-9]{2,4}$)|(^0000$)")),
-                   col] = df[f"{col}_code_original"]
+        if code_system_id == 1:
+            for col in cause_cols:
+                df.loc[~(df[f"{col}"].str.match("(^[A-Z][0-9]{2,4}$)|(^0000$)")),
+                       col] = df[f"{col}_code_original"]
 
     # subset to rows where UCOD is injuries or any death is X59/y34
     df = df[[x for x in list(df) if not ((x.endswith(f"{int_cause}")) | (
