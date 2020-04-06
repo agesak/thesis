@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 import sys
-import ast
 
 from cod_prep.utils.misc import print_log_message
 from cod_prep.claude.claude_io import makedirs_safely
@@ -62,9 +61,9 @@ def run_pipeline(model, train_df, model_params, write_dir, int_cause):
         calculate_concordance, greater_is_better=True, int_cause=int_cause)
 
     scoring = {"precision": precision_scorer,
-                "sensitivity": recall_scorer,
-                "concordance":concordance_scorer,
-                "cccsfma": cccsfma_scorer}
+               "sensitivity": recall_scorer,
+               "concordance": concordance_scorer,
+               "cccsfma": cccsfma_scorer}
 
     gscv = GridSearchCV(pipeline, model_params, cv=5,
                         scoring=scoring, n_jobs=-1,
@@ -88,8 +87,6 @@ def main(param, model, model_dir, int_cause, short_name):
     model_params = format_params(model, param)
 
     run_pipeline(model, train_df, model_params, write_dir, int_cause)
-
-
 
 
 if __name__ == '__main__':

@@ -100,17 +100,18 @@ def calculate_cccsmfa(y_true, y_pred):
     # y pred is predicted cause ids
 
     random_allocation = 0.632
-    
-    csmf_true = pd.Series(y_true).value_counts()/float(len(y_true))
-    csmf_pred = pd.Series(y_pred).value_counts()/float(len(y_pred))
+
+    csmf_true = pd.Series(y_true).value_counts() / float(len(y_true))
+    csmf_pred = pd.Series(y_pred).value_counts() / float(len(y_pred))
     numerator = np.abs(csmf_true - csmf_pred)
     # first get csmfa
-    csmfa = 1 - (numerator.sum())/(2*(1-np.min(csmf_true)))
+    csmfa = 1 - (numerator.sum()) / (2 * (1 - np.min(csmf_true)))
 
     # then get cccsmfa
-    cccsmfa = (csmfa-random_allocation)/(1-random_allocation)
+    cccsmfa = (csmfa - random_allocation) / (1 - random_allocation)
 
     return cccsmfa
+
 
 def calculate_concordance(y_true, y_pred, int_cause):
     """Calculate chance-corrected concordance
@@ -121,15 +122,13 @@ def calculate_concordance(y_true, y_pred, int_cause):
 
     for cause in causes:
         # TP+FN - the number of deaths for a cause
-        denom = (y_true==cause).sum(axis=0)
-        # # why would i do this? isnt denom 1 number?
-        # # denom = np.array(n_j, dtype=float)  # ensure that we get floating point division
+        denom = (y_true == cause).sum(axis=0)
         # TP/denom
-        total = ((y_true==cause)&(y_pred==cause)).sum(axis=0)/denom
+        total = ((y_true == cause) & (y_pred == cause)).sum(axis=0) / denom
         # chance-corrected concordance
-        ccc = (total - (1/len(causes)))/(1 - (1/len(causes)))
-        causes = np.where(causes==cause, ccc, causes)
-        
+        ccc = (total - (1 / len(causes))) / (1 - (1 / len(causes)))
+        causes = np.where(causes == cause, ccc, causes)
+
     cccc = np.mean(causes, axis=0)
 
     return cccc

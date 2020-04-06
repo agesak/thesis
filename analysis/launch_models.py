@@ -19,9 +19,9 @@ class ModelLauncher():
                   "nb": "MultinomialNB",
                   "svm": "SVC",
                   "gbt": "GradientBoostingClassifier"}
-    param_dict = {"rf":2
+    param_dict = {"rf": 2
 
-    }
+                  }
     # but this doesnt work in the loop
     # model_dict.update("all":list(ModelLauncher.model_dict.values()))
 
@@ -77,7 +77,8 @@ class ModelLauncher():
 
     def launch_models(self, model, model_type, model_param):
 
-        params = [model_param, model, self.model_dir, self.int_cause, model_type]
+        params = [model_param, model, self.model_dir,
+                  self.int_cause, model_type]
         jobname = f"{model}_{self.int_cause}_{model_param}"
         worker = f"/homes/agesak/thesis/analysis/run_models.py"
         submit_mcod(jobname, "python", worker, cores=2, memory="6G",
@@ -97,7 +98,8 @@ class ModelLauncher():
                     print_log_message(
                         f"{len(params)} sets of model parameters")
                     for parameter in params:
-                        param = ModelLauncher.format_params(parameter, ModelLauncher.param_dict[model_type])
+                        param = ModelLauncher.format_params(
+                            parameter, ModelLauncher.param_dict[model_type])
                         self.launch_models(model, model_type, param)
 
 
@@ -113,10 +115,12 @@ if __name__ == "__main__":
         choices=["x59", "y34"])
     parser.add_argument(
         "--model_type", help="",
-        required=True, choices=list(ModelLauncher.model_dict.keys()) + ["all"], nargs="*")
+        required=True,
+        choices=list(ModelLauncher.model_dict.keys()) + ["all"], nargs="*")
     # not required
     parser.add_argument(
-        "--description", help='model run; if "launch_model" then date is appended',
+        "--description",
+        help='model run; if "launch_model" then date is appended',
         type=str
     )
 
