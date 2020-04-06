@@ -19,6 +19,9 @@ class ModelLauncher():
                   "nb": "MultinomialNB",
                   "svm": "SVC",
                   "gbt": "GradientBoostingClassifier"}
+    param_dict = {"rf":2
+
+    }
     # but this doesnt work in the loop
     # model_dict.update("all":list(ModelLauncher.model_dict.values()))
 
@@ -44,22 +47,21 @@ class ModelLauncher():
         clf__estimator__n_estimators = df.loc[df[
             f"{model}"] == "clf__estimator__n_estimators",
             f"{model}_value"].str.split(",")[0]
-        clf__estimator__max_features = df.loc[df[
-            f"{model}"] == "clf__estimator__max_features",
-            f"{model}_value"].tolist()
+        # clf__estimator__max_features = df.loc[df[
+        #     f"{model}"] == "clf__estimator__max_features",
+        #     f"{model}_value"].tolist()
         clf__estimator__max_depth = df.loc[df[
             f"{model}"] == "clf__estimator__max_depth",
-            f"{model}_value"].tolist()
-        keys = "clf__estimator__n_estimators", "clf__estimator__max_features", "clf__estimator__max_depth"
+            f"{model}_value"].str.split(",")[1]
+        keys = "clf__estimator__n_estimators", "clf__estimator__max_depth"
         params = [dict(zip(keys, combo)) for combo in itertools.product(
-            clf__estimator__n_estimators, clf__estimator__max_features,
-            clf__estimator__max_depth)]
+            clf__estimator__n_estimators, clf__estimator__max_depth)]
 
         return params
 
-    def format_params(param):
+    def format_params(param, param_len):
         # three bc 3 keys.. may change based on model? - could create model_type:param_number dictionary
-        assert len(param) == 3, "error.. more than one set of params"
+        assert len(param) == param_len, "error.. more than one set of params"
         # turn all params into a single "_" separated string for argparse
         param = "_".join([str(x) for x in list(param.values())])
         return param
@@ -95,7 +97,7 @@ class ModelLauncher():
                     print_log_message(
                         f"{len(params)} sets of model parameters")
                     for parameter in params:
-                        param = ModelLauncher.format_params(parameter)
+                        param = ModelLauncher.format_params(parameter, ModelLauncher.param_dict[model_type])
                         self.launch_models(model, model_type, param)
 
 

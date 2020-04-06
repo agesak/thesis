@@ -6,7 +6,7 @@ import ast
 from cod_prep.utils.misc import print_log_message
 from cod_prep.claude.claude_io import makedirs_safely
 from thesis_utils.grid_search import ClfSwitcher
-from thesis_utils.modeling import calculate_cccsmfa
+from thesis_utils.modeling import calculate_cccsmfa, calculate_concordance
 
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.ensemble import RandomForestClassifier
@@ -20,7 +20,6 @@ from sklearn.model_selection import GridSearchCV
 - later doing gridsearch
 2. figuring out how to implement ccc on 500 test datasets
 and whether or not this should be applied to all evaluation metrics
-3. figure out how to implement the cccsfma - need function
 """
 
 
@@ -41,7 +40,7 @@ def format_params(model, param):
 
 # precision, sensitivity, chance-corrected concordance (CCC)
 # chance-corrected cause-specific mortality fraction (CCCSMF) accuracy
-def run_pipeline(model, train_df, model_params, write_dir):
+def run_pipeline(model, train_df, model_params, write_dir, int_cause):
 
     pipeline = Pipeline([
         ("bow", CountVectorizer(lowercase=False)),
@@ -59,10 +58,13 @@ def run_pipeline(model, train_df, model_params, write_dir):
         recall_score, greater_is_better=True, average="micro")
     cccsfma_scorer = make_scorer(
         calculate_cccsmfa, greater_is_better=True)
+    concordance_scorer = make_scorer(
+        calculate_concordance, greater_is_better=True, int_cause=int_cause)
 
     scoring = {"precision": precision_scorer,
                 "sensitivity": recall_scorer,
-                "ccscfma": cccsfma_scorer}
+                "concordance":concordance_scorer,
+                "cccsfma": cccsfma_scorer}
 
     gscv = GridSearchCV(pipeline, model_params, cv=5,
                         scoring=scoring, n_jobs=-1,
@@ -85,7 +87,7 @@ def main(param, model, model_dir, int_cause, short_name):
     train_df = pd.read_csv(f"{model_dir}/train_df.csv")
     model_params = format_params(model, param)
 
-    run_pipeline(model, train_df, model_params, write_dir)
+    run_pipeline(model, train_df, model_params, write_dir, int_cause)
 
 
 

@@ -6,6 +6,7 @@ import argparse
 from sklearn.model_selection import train_test_split
 
 from mcod_prep.utils.mcause_io import get_mcause_data
+from mcod_prep.utils.causes import get_most_detailed_inj_causes
 from cod_prep.utils.misc import print_log_message
 from db_queries import get_location_metadata
 from thesis_utils.directories import get_limited_use_directory
@@ -92,25 +93,6 @@ def str2bool(v):
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
-# def measure_prediction_quality(csmf_pred, y_test):
-#     """Calculate population-level prediction quality (CSMF Accuracy)
-    
-#     Parameters
-#     ----------
-#     csmf_pred : pd.Series, predicted distribution of causes
-#     y_test : array-like, labels for test dataset
-    
-#     Results
-#     -------
-#     csmf_acc : float
-#     """
-    
-#     csmf_true = pd.Series(y_test).value_counts() / float(len(y_test))
-#     temp = np.abs(csmf_true-csmf_pred)
-#     csmf_acc = 1 - temp.sum()/(2*(1-np.min(csmf_true)))
-#     return csmf_acc
-
-
 def calculate_cccsmfa(y_true, y_pred):
     # https://stackoverflow.com/questions/32401493/how-to-create-customize-your-own-scorer-function-in-scikit-learn
     # built from https://github.com/aflaxman/siaman16-va-minitutorial/blob/master/1-tutorial-notebooks/4-va_csmf.ipynb
@@ -130,20 +112,24 @@ def calculate_cccsmfa(y_true, y_pred):
 
     return cccsmfa
 
-
-# could try to have a parameter for number causes (that could specify in the make_scorer), but for now just hard code
-def calculate_concordance(y_true, y_pred):
+def calculate_concordance(y_true, y_pred, int_cause):
+    """Calculate chance-corrected concordance
+    ((TP/TP+FN) - 1/N)/(1 - 1/N)"""
 
     # get an array of the cause_ids in my data
-    causes = cause_ids
+    causes = np.array(get_most_detailed_inj_causes(int_cause, cause_set_id=4))
 
     for cause in causes:
-        # axis may be wrong here
-        denom = (y_true==cause).sum(axis=1)
-        # denom = np.array(n_j, dtype=float)  # ensure that we get floating point division
-        change = ((y_true==cause)&(y_pred==cause)).sum(axis=1)/denom # check the axis
-        causes = np.where(causes==causes, new_cause, causes)
+        # TP+FN - the number of deaths for a cause
+        denom = (y_true==cause).sum(axis=0)
+        # # why would i do this? isnt denom 1 number?
+        # # denom = np.array(n_j, dtype=float)  # ensure that we get floating point division
+        # TP/denom
+        total = ((y_true==cause)&(y_pred==cause)).sum(axis=0)/denom
+        # chance-corrected concordance
+        ccc = (total - (1/len(causes)))/(1 - (1/len(causes)))
+        causes = np.where(causes==cause, ccc, causes)
         
-    concordance = np.mean(causes, axis=0)
+    cccc = np.mean(causes, axis=0)
 
-    return concordance
+    return cccc
