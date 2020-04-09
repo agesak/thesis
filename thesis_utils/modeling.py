@@ -45,30 +45,30 @@ def create_train_test(df, test, int_cause):
 
     locs = get_location_metadata(gbd_round_id=6, location_set_id=35)
 
-    # split train 75%, test 25%
-    train_df, test_df = train_test_split(df, test_size=0.25)
-
-    # will need to do this for test df too..
     if test:
         print_log_message(
             "THIS IS A TEST.. only using 5000 rows from each loc")
-        train_df = train_df.merge(
+        df = df.merge(
             locs[["location_id", "parent_id", "level"]],
             on="location_id", how="left")
         # map subnationals to parent so
         # random sampling will be at country level
-        train_df["location_id"] = np.where(
-            train_df["level"] > 3, train_df["parent_id"],
-            train_df["location_id"])
-        train_df.drop(columns=["parent_id", "level"], inplace=True)
+        df["location_id"] = np.where(
+            df["level"] > 3, df["parent_id"],
+            df["location_id"])
+        df.drop(columns=["parent_id", "level"], inplace=True)
         # get a random sample from each location
         # bc full dataset takes forever to run
         dfs = []
-        for loc in list(train_df.location_id.unique()):
-            subdf = train_df.query(f"location_id=={loc}")
-            random_df = subdf.sample(n=5000, replace=False)
+        for loc in list(df.location_id.unique()):
+            subdf = df.query(f"location_id=={loc}")
+            random_df = subdf.sample(n=7000, replace=False)
             dfs.append(random_df)
-        train_df = pd.concat(dfs, ignore_index=True, sort=True)
+        df = pd.concat(dfs, ignore_index=True, sort=True)
+
+    # split train 75%, test 25%
+    train_df, test_df = train_test_split(df, test_size=0.25)
+
 
     # will only train/test where we know UCoD
     # see how final results change when subsetting to where x59==0 -

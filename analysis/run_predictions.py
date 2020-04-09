@@ -46,6 +46,7 @@ def main(best_model_dir, dataset_dir, best_model_params, int_cause):
                       cccsmfa], "recall": [recall], "precision": [precision],
         "best_model_params": [best_model_params]})
     df.to_csv(f"{dataset_dir}/summary_stats.csv", index=False)
+    dataset.to_csv(f"{dataset_dir}/predictions.csv", index=False)
 
 
 if __name__ == '__main__':

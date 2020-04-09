@@ -25,8 +25,9 @@ class ModelLauncher():
                   "svm": "SVC",
                   "gbt": "GradientBoostingClassifier"}
     param_dict = {"rf": 2
-
                   }
+    num_datasets = 10
+    df_size = 1000
     # but this doesnt work in the loop
     # model_dict.update("all":list(ModelLauncher.model_dict.values()))
 
@@ -42,7 +43,7 @@ class ModelLauncher():
                 self.description += "_test"
         else:
             self.description = self.run_filters["description"]
-        self.model_dir = f"/ihme/cod/prep/mcod/process_data/x59/thesis"
+        self.model_dir = "/ihme/cod/prep/mcod/process_data/x59/thesis"
 
     def create_training_data(self, model_dir):
         makedirs_safely(model_dir)
@@ -62,19 +63,18 @@ class ModelLauncher():
         print(best_model_params)
 
         # will use parameter specific folder for test datasets
-        write_dir = f"{self.model_dir}/sample_dirichlet/{short_name}/{best_model_params}"
+        write_dir = f"{self.model_dir}/sample_dirichlet/{short_name}/{self.description}/{best_model_params}"
         makedirs_safely(write_dir)
 
         if make_datasets:
             # read in test dataset
-            print("reading in")
             test_df = pd.read_csv(
                 f"{self.model_dir}/{self.description}/test_df.csv")
             # this will write each dataset to numbered folders as well
             # THIS FUNCTION IS LIKELY WRONG? (small proportions issue)
             # also i might need to parallelize this by dataset number
             create_testing_datasets(
-                test_df, write_dir, num_datasets=2, df_size=10)
+                test_df, write_dir, num_datasets=ModelLauncher.num_datasets, df_size=ModelLauncher.df_size)
 
         return best_model_params, write_dir
 
@@ -94,10 +94,10 @@ class ModelLauncher():
     def launch_training_models(self, model_name, short_name, model_param, model_dir):
 
         write_dir = f"{model_dir}/{short_name}/model_{model_param}"
+        train_dir = f"{self.model_dir}/{self.description}"
         makedirs_safely(write_dir)
-        df_file = f"{model_dir}/train_df.csv"
 
-        params = [write_dir, df_file, model_param,
+        params = [write_dir, train_dir, model_param,
                   model_name, short_name, self.int_cause]
         jobname = f"{model_name}_{self.int_cause}_{model_param}"
         worker = f"/homes/agesak/thesis/analysis/run_models.py"
