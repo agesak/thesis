@@ -87,6 +87,7 @@ def random_forest_params(model):
     clf__estimator__n_estimators = df.loc[df[
         f"{model}"] == "clf__estimator__n_estimators",
         f"{model}_value"].str.split(",")[0]
+
     # clf__estimator__max_features = df.loc[df[
     #     f"{model}"] == "clf__estimator__max_features",
     #     f"{model}_value"].tolist()
@@ -100,21 +101,9 @@ def random_forest_params(model):
     return params
 
 
-
-
-def format_params(model_name, param):
-
-    df = pd.read_csv("/homes/agesak/thesis/maps/parameters.csv")
-    params = dict(zip(df[f"{model_name}"].unique().tolist(), param.split("_")))
-    int_cols = df.loc[df[f"{model_name}_dtype"] ==
-                      "int", f"{model_name}"].unique().tolist()
-    # certain parameters must be integers
-    for int_col in int_cols:
-        params[int_col] = [int(params[int_col])]
-    # but all parameters must be lists
-    for col in np.setdiff1d(df[f"{model_name}"].unique().tolist(), int_cols):
-        params[col] = [params[col]]
-    return params
-
-
-
+def format_argparse_params(param, param_len):
+    # three bc 3 keys.. may change based on model? - could create model_type:param_number dictionary
+    assert len(param) == param_len, "error.. more than one set of params"
+    # turn all params into a single "_" separated string for argparse
+    param = "_".join([str(x) for x in list(param.values())])
+    return param

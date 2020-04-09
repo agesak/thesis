@@ -1,17 +1,9 @@
 import pandas as pd
-import numpy as np
 import sys
+from sklearn.externals import joblib
 
 from cod_prep.utils.misc import print_log_message
-from cod_prep.claude.claude_io import makedirs_safely
-from thesis_utils.grid_search import ClfSwitcher
-from thesis_utils.modeling import calculate_cccsmfa, calculate_concordance, run_pipeline, format_params
-
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.pipeline import Pipeline
-from sklearn.metrics import precision_score, recall_score, make_scorer
-from sklearn.model_selection import GridSearchCV
+from thesis_utils.grid_search import run_pipeline, format_gridsearch_params
 
 
 """to do
@@ -81,11 +73,14 @@ and whether or not this should be applied to all evaluation metrics
 def main(model_param, model_name, write_dir, df_file, int_cause, short_name):
 
     model_df = pd.read_csv(f"{df_file}")
-    model_params = format_params(model_name, model_param)
+    print_log_message("formatting parameters")
+    model_params = format_gridsearch_params(model_name, model_param)
 
-    results = run_pipeline(model_name, model_df, model_params, write_dir, int_cause)
+    print_log_message("runninf pipeline")
+    results, grid_results = run_pipeline(model_name, model_df, model_params,
+                                         write_dir, int_cause)
     results.to_csv(f"{write_dir}/summary_stats.csv", index=False)
-
+    joblib.dump(grid_results, f"{write_dir}/grid_results.pkl")
 
 
 # def main(param, model, model_dir, int_cause, short_name):

@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 from cod_prep.utils.misc import print_log_message
 from thesis_utils.clf_switching import ClfSwitcher
@@ -13,6 +14,9 @@ from sklearn.model_selection import GridSearchCV
 
 
 def create_custom_scorers(int_cause):
+    """
+    """
+    # https://stackoverflow.com/questions/32401493/how-to-create-customize-your-own-scorer-function-in-scikit-learn
 
     precision_scorer = make_scorer(
         precision_score, greater_is_better=True, average="micro")
@@ -30,6 +34,21 @@ def create_custom_scorers(int_cause):
 
 # precision, sensitivity, chance-corrected concordance (CCC)
 # chance-corrected cause-specific mortality fraction (CCCSMF) accuracy
+
+
+def format_gridsearch_params(model_name, param):
+
+    df = pd.read_csv("/homes/agesak/thesis/maps/parameters.csv")
+    params = dict(zip(df[f"{model_name}"].unique().tolist(), param.split("_")))
+    int_cols = df.loc[df[f"{model_name}_dtype"] ==
+                      "int", f"{model_name}"].unique().tolist()
+    # certain parameters must be integers
+    for int_col in int_cols:
+        params[int_col] = [int(params[int_col])]
+    # but all parameters must be lists
+    for col in np.setdiff1d(df[f"{model_name}"].unique().tolist(), int_cols):
+        params[col] = [params[col]]
+    return params
 
 
 def run_pipeline(model, model_df, model_params, write_dir, int_cause):
@@ -58,4 +77,4 @@ def run_pipeline(model, model_df, model_params, write_dir, int_cause):
 
     print_log_message("saving model results")
     results = pd.DataFrame.from_dict(grid_results.cv_results_)
-    return results
+    return results, grid_results
