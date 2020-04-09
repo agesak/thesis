@@ -1,12 +1,15 @@
 import pandas as pd
 import datetime
-import itertools
 import argparse
+import os
 
 from cod_prep.utils.misc import print_log_message
 from cod_prep.claude.claude_io import makedirs_safely
 from mcod_prep.utils.mcod_cluster_tools import submit_mcod
-from thesis_utils.modeling import read_in_data, create_train_test, str2bool
+from thesis_utils.modeling import (read_in_data, create_train_test,
+    random_forest_params)
+from thesis_utils.model_evaluation import (str2bool, get_best_fit,
+    create_testing_datasets, format_best_fit_params)
 
 
 # function to read in all model outputs/precision metrics
@@ -37,27 +40,8 @@ class ModelLauncher():
                 self.description += "_test"
         else:
             self.description = self.run_filters["description"]
-        self.model_dir = f"/ihme/cod/prep/mcod/process_data/x59/thesis/{self.description}"
-        # print(self.test, type(self.test), self.phase, self.int_cause, self.description, self.model_dir)
+        self.model_dir = f"/ihme/cod/prep/mcod/process_data/x59/thesis/"
 
-    def random_forest_params(model):
-        assert model == "RandomForestClassifier", "wrong model type"
-
-        df = pd.read_csv("/homes/agesak/thesis/maps/parameters.csv")
-        clf__estimator__n_estimators = df.loc[df[
-            f"{model}"] == "clf__estimator__n_estimators",
-            f"{model}_value"].str.split(",")[0]
-        # clf__estimator__max_features = df.loc[df[
-        #     f"{model}"] == "clf__estimator__max_features",
-        #     f"{model}_value"].tolist()
-        clf__estimator__max_depth = df.loc[df[
-            f"{model}"] == "clf__estimator__max_depth",
-            f"{model}_value"].str.split(",")[1]
-        keys = "clf__estimator__n_estimators", "clf__estimator__max_depth"
-        params = [dict(zip(keys, combo)) for combo in itertools.product(
-            clf__estimator__n_estimators, clf__estimator__max_depth)]
-
-        return params
 
     def format_params(param, param_len):
         # three bc 3 keys.. may change based on model? - could create model_type:param_number dictionary
@@ -66,20 +50,59 @@ class ModelLauncher():
         param = "_".join([str(x) for x in list(param.values())])
         return param
 
-    def create_training_data(self):
-        makedirs_safely(self.model_dir)
+    def create_training_data(self, model_dir):
+        makedirs_safely(model_dir)
         df = read_in_data(self.int_cause)
         train_df, test_df = create_train_test(
             df, test=self.test, int_cause=self.int_cause)
         print_log_message("writing train/test to df")
-        train_df.to_csv(f"{self.model_dir}/train_df.csv", index=False)
-        test_df.to_csv(f"{self.model_dir}/test_df.csv", index=False)
+        train_df.to_csv(f"{model_dir}/train_df.csv", index=False)
+        test_df.to_csv(f"{model_dir}/test_df.csv", index=False)
 
-    def launch_models(self, model, model_type, model_param):
 
-        params = [model_param, model, self.model_dir,
-                  self.int_cause, model_type]
-        jobname = f"{model}_{self.int_cause}_{model_param}"
+    def compare_models(self, short_name, model_name, launch_models):
+
+        # get parameters of best model fit for given model
+        best_fit = get_best_fit(model_dir=f"{self.model_dir}/{self.description}", short_name)
+        best_model_params = format_best_fit_params(best_fit)
+        
+        # will use parameter specific folder for test datasets
+        write_dir = f"{self.model_dir}/sample_dirichlet/{short_name}/{best_model_params}"
+        makedirs_safely(write_dir)
+        
+        if not launch_models:
+            # read in test dataset
+            test_df = pd.read_csv(f"{model_dir}/test_df.csv")
+            # this will write each dataset to numbered folders as well
+            # THIS FUNCTION IS LIKELY WRONG? (small proportions issue)
+            create_testing_datasets(test_df, write_dir)
+
+        return best_model_params, write_dir
+
+
+
+    def launch_testing_models(self, model_name, short_name, best_model_params, write_dir, dataset_num):
+        write_dir = f"{write_dir}/dataset_{i+1}"
+        df_file = f"{write_dir}/dataset.csv"
+
+        params = [best_model_params, model_name, write_dir, df_file, self.int_cause, short_name]
+        jobname = f"{model_name}_{self.int_cause}_dataset_{dataset_num}_{best_model_param}"
+        worker = f"/homes/agesak/thesis/analysis/run_models.py"
+        submit_mcod(jobname, "python", worker, cores=2, memory="6G",
+                    params=params, verbose=True, logging=True,
+                    jdrive=False, queue="i.q")
+
+
+
+    def launch_training_models(self, model_name, short_name, model_param, model_dir):
+
+        write_dir = f"{model_dir}/{short_name}/model_{model_param}"
+        makedirs_safely(write_dir)
+        df_file = f"{model_dir}/train_df.csv"
+        
+        params = [write_dir, df_file, model_param,
+                model_name, short_name, self.int_cause]
+        jobname = f"{model_name}_{self.int_cause}_{model_param}"
         worker = f"/homes/agesak/thesis/analysis/run_models.py"
         submit_mcod(jobname, "python", worker, cores=2, memory="6G",
                     params=params, verbose=True, logging=True,
@@ -87,27 +110,48 @@ class ModelLauncher():
 
     def launch(self):
         if self.phase == "train_test":
-            self.create_training_data()
+            self.create_training_data(model_dir=f"{model_dir}/{self.description}")
 
-        if self.phase == "launch_model":
-            for model_type in self.model_types:
-                model = ModelLauncher.model_dict[model_type]
-                if model == "RandomForestClassifier":
+        if self.phase == "launch_training_model":
+            for short_name in self.model_types:
+                model_name = ModelLauncher.model_dict[short_name]
+                if model_name == "RandomForestClassifier":
                     print_log_message("launching Random Forest")
-                    params = ModelLauncher.random_forest_params(model)
+                    params = random_forest_params(model_name)
                     print_log_message(
                         f"{len(params)} sets of model parameters")
                     for parameter in params:
                         param = ModelLauncher.format_params(
-                            parameter, ModelLauncher.param_dict[model_type])
-                        self.launch_models(model, model_type, param)
+                            parameter, ModelLauncher.param_dict[short_name])
+                        self.launch_training_models(model_name, short_name, param,
+                            model_dir=f"{model_dir}/{self.description}")
+
+        if self.phase == "create_test_datasets":
+            for short_name in self.model_types:
+                model_name = ModelLauncher.model_dict[short_name]
+                best_model_params, write_dir = self.compare_models(short_name, model_name, launch_models=True)
+
+        if self.phase == "launch_test_models":
+            for short_name in self.model_types:
+                model_name = ModelLauncher.model_dict[short_name]
+                best_model_params, write_dir = self.compare_models(short_name, model_name, launch_models=False)
+                # https://stackoverflow.com/questions/29769181/count-the-number-of-folders-in-a-directory-and-subdirectories
+                num_datasets = print(len(next(os.walk(write_dir))[1]))
+                for dataset in range(0, num_datasets):
+                    # is this even right
+                    dataset += 1
+                    print(dataset)
+                    self.launch_testing_models(model_name, short_name, best_model_params, write_dir, dataset)
+
+
+
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="")
     parser.add_argument(
         "--phase", help="", required=True,
-        choices=["train_test", "launch_model"])
+        choices=["train_test", "launch_training_model"])
     parser.add_argument("--test", type=str2bool, nargs="?",
                         const=True, default=False)
     parser.add_argument(

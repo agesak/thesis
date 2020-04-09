@@ -2,11 +2,10 @@ import pandas as pd
 import glob
 import os
 import numpy as np
-import argparse
+import itertools
 from sklearn.model_selection import train_test_split
 
 from mcod_prep.utils.mcause_io import get_mcause_data
-from mcod_prep.utils.causes import get_most_detailed_inj_causes
 from cod_prep.utils.misc import print_log_message
 from db_queries import get_location_metadata
 from thesis_utils.directories import get_limited_use_directory
@@ -81,54 +80,41 @@ def create_train_test(df, test, int_cause):
     return train_df, test_df
 
 
-def str2bool(v):
-    """https://stackoverflow.com/questions/15008758/parsing-boolean-values-with-argparse"""
-    if isinstance(v, bool):
-        return v
-    if v.lower() in ('yes', 'true', 't', 'y', '1'):
-        return True
-    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
-        return False
-    else:
-        raise argparse.ArgumentTypeError('Boolean value expected.')
+def random_forest_params(model):
+    assert model == "RandomForestClassifier", "wrong model type"
+
+    df = pd.read_csv("/homes/agesak/thesis/maps/parameters.csv")
+    clf__estimator__n_estimators = df.loc[df[
+        f"{model}"] == "clf__estimator__n_estimators",
+        f"{model}_value"].str.split(",")[0]
+    # clf__estimator__max_features = df.loc[df[
+    #     f"{model}"] == "clf__estimator__max_features",
+    #     f"{model}_value"].tolist()
+    clf__estimator__max_depth = df.loc[df[
+        f"{model}"] == "clf__estimator__max_depth",
+        f"{model}_value"].str.split(",")[1]
+    keys = "clf__estimator__n_estimators", "clf__estimator__max_depth"
+    params = [dict(zip(keys, combo)) for combo in itertools.product(
+        clf__estimator__n_estimators, clf__estimator__max_depth)]
+
+    return params
 
 
-def calculate_cccsmfa(y_true, y_pred):
-    # https://stackoverflow.com/questions/32401493/how-to-create-customize-your-own-scorer-function-in-scikit-learn
-    # built from https://github.com/aflaxman/siaman16-va-minitutorial/blob/master/1-tutorial-notebooks/4-va_csmf.ipynb
-    # y true is true cause ids
-    # y pred is predicted cause ids
-
-    random_allocation = 0.632
-
-    csmf_true = pd.Series(y_true).value_counts() / float(len(y_true))
-    csmf_pred = pd.Series(y_pred).value_counts() / float(len(y_pred))
-    numerator = np.abs(csmf_true - csmf_pred)
-    # first get csmfa
-    csmfa = 1 - (numerator.sum()) / (2 * (1 - np.min(csmf_true)))
-
-    # then get cccsmfa
-    cccsmfa = (csmfa - random_allocation) / (1 - random_allocation)
-
-    return cccsmfa
 
 
-def calculate_concordance(y_true, y_pred, int_cause):
-    """Calculate chance-corrected concordance
-    ((TP/TP+FN) - 1/N)/(1 - 1/N)"""
+def format_params(model_name, param):
 
-    # get an array of the cause_ids in my data
-    causes = np.array(get_most_detailed_inj_causes(int_cause, cause_set_id=4))
+    df = pd.read_csv("/homes/agesak/thesis/maps/parameters.csv")
+    params = dict(zip(df[f"{model_name}"].unique().tolist(), param.split("_")))
+    int_cols = df.loc[df[f"{model_name}_dtype"] ==
+                      "int", f"{model_name}"].unique().tolist()
+    # certain parameters must be integers
+    for int_col in int_cols:
+        params[int_col] = [int(params[int_col])]
+    # but all parameters must be lists
+    for col in np.setdiff1d(df[f"{model_name}"].unique().tolist(), int_cols):
+        params[col] = [params[col]]
+    return params
 
-    for cause in causes:
-        # TP+FN - the number of deaths for a cause
-        denom = (y_true == cause).sum(axis=0)
-        # TP/denom
-        total = ((y_true == cause) & (y_pred == cause)).sum(axis=0) / denom
-        # chance-corrected concordance
-        ccc = (total - (1 / len(causes))) / (1 - (1 / len(causes)))
-        causes = np.where(causes == cause, ccc, causes)
 
-    cccc = np.mean(causes, axis=0)
 
-    return cccc

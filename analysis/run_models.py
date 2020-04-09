@@ -5,7 +5,7 @@ import sys
 from cod_prep.utils.misc import print_log_message
 from cod_prep.claude.claude_io import makedirs_safely
 from thesis_utils.grid_search import ClfSwitcher
-from thesis_utils.modeling import calculate_cccsmfa, calculate_concordance
+from thesis_utils.modeling import calculate_cccsmfa, calculate_concordance, run_pipeline, format_params
 
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.ensemble import RandomForestClassifier
@@ -22,82 +22,100 @@ and whether or not this should be applied to all evaluation metrics
 """
 
 
-def format_params(model, param):
+# def format_params(model, param):
 
-    df = pd.read_csv("/homes/agesak/thesis/maps/parameters.csv")
-    params = dict(zip(df[f"{model}"].unique().tolist(), param.split("_")))
-    int_cols = df.loc[df[f"{model}_dtype"] ==
-                      "int", f"{model}"].unique().tolist()
-    # certain parameters must be integers
-    for int_col in int_cols:
-        params[int_col] = [int(params[int_col])]
-    # but all parameters must be lists
-    for col in np.setdiff1d(df[f"{model}"].unique().tolist(), int_cols):
-        params[col] = [params[col]]
-    return params
+#     df = pd.read_csv("/homes/agesak/thesis/maps/parameters.csv")
+#     params = dict(zip(df[f"{model}"].unique().tolist(), param.split("_")))
+#     int_cols = df.loc[df[f"{model}_dtype"] ==
+#                       "int", f"{model}"].unique().tolist()
+#     # certain parameters must be integers
+#     for int_col in int_cols:
+#         params[int_col] = [int(params[int_col])]
+#     # but all parameters must be lists
+#     for col in np.setdiff1d(df[f"{model}"].unique().tolist(), int_cols):
+#         params[col] = [params[col]]
+#     return params
 
 
-# precision, sensitivity, chance-corrected concordance (CCC)
-# chance-corrected cause-specific mortality fraction (CCCSMF) accuracy
-def run_pipeline(model, train_df, model_params, write_dir, int_cause):
+# # precision, sensitivity, chance-corrected concordance (CCC)
+# # chance-corrected cause-specific mortality fraction (CCCSMF) accuracy
+# def run_pipeline(model, train_df, model_params, write_dir, int_cause):
 
-    pipeline = Pipeline([
-        ("bow", CountVectorizer(lowercase=False)),
-        ("clf", ClfSwitcher())
-    ])
+#     pipeline = Pipeline([
+#         ("bow", CountVectorizer(lowercase=False)),
+#         ("clf", ClfSwitcher())
+#     ])
 
-    model_params.update({"clf__estimator": [eval(model)()]})
+#     model_params.update({"clf__estimator": [eval(model)()]})
 
-    precision_scorer = make_scorer(
-        precision_score, greater_is_better=True, average="micro")
-    # my understanding is that this is the same as sensitivity
-    # https://scikit-learn.org/stable/modules/generated/sklearn.metrics.recall_score.html
-    # tp / (tp + fn)
-    recall_scorer = make_scorer(
-        recall_score, greater_is_better=True, average="micro")
-    cccsfma_scorer = make_scorer(
-        calculate_cccsmfa, greater_is_better=True)
-    concordance_scorer = make_scorer(
-        calculate_concordance, greater_is_better=True, int_cause=int_cause)
+#     precision_scorer = make_scorer(
+#         precision_score, greater_is_better=True, average="micro")
+#     # my understanding is that this is the same as sensitivity
+#     # https://scikit-learn.org/stable/modules/generated/sklearn.metrics.recall_score.html
+#     # tp / (tp + fn)
+#     recall_scorer = make_scorer(
+#         recall_score, greater_is_better=True, average="micro")
+#     cccsfma_scorer = make_scorer(
+#         calculate_cccsmfa, greater_is_better=True)
+#     concordance_scorer = make_scorer(
+#         calculate_concordance, greater_is_better=True, int_cause=int_cause)
 
-    scoring = {"precision": precision_scorer,
-               "sensitivity": recall_scorer,
-               "concordance": concordance_scorer,
-               "cccsfma": cccsfma_scorer}
+#     scoring = {"precision": precision_scorer,
+#                "sensitivity": recall_scorer,
+#                "concordance": concordance_scorer,
+#                "cccsfma": cccsfma_scorer}
 
-    gscv = GridSearchCV(pipeline, model_params, cv=5,
-                        scoring=scoring, n_jobs=-1,
-                        # just taking wild guesses here people
-                        refit="cccsfma", verbose=6)
+#     gscv = GridSearchCV(pipeline, model_params, cv=5,
+#                         scoring=scoring, n_jobs=-1,
+#                         # just taking wild guesses here people
+#                         refit="cccsfma", verbose=6)
 
-    grid_results = gscv.fit(train_df["cause_info"], train_df["cause_id"])
+#     grid_results = gscv.fit(train_df["cause_info"], train_df["cause_id"])
 
-    print_log_message("saving model results")
-    results = pd.DataFrame.from_dict(grid_results.cv_results_)
-    # will change this name for each metric
+#     print_log_message("saving model results")
+#     results = pd.DataFrame.from_dict(grid_results.cv_results_)
+#     # will change this name for each metric
+#     results.to_csv(f"{write_dir}/summary_stats.csv", index=False)
+
+
+def main(model_param, model_name, write_dir, df_file, int_cause, short_name):
+
+    model_df = pd.read_csv(f"{df_file}")
+    model_params = format_params(model_name, model_param)
+
+    results = run_pipeline(model_name, model_df, model_params, write_dir, int_cause)
     results.to_csv(f"{write_dir}/summary_stats.csv", index=False)
 
 
-def main(param, model, model_dir, int_cause, short_name):
 
-    write_dir = f"{model_dir}/{short_name}/model_{param}"
-    makedirs_safely(write_dir)
+# def main(param, model, model_dir, int_cause, short_name):
 
-    train_df = pd.read_csv(f"{model_dir}/train_df.csv")
-    model_params = format_params(model, param)
+#     write_dir = f"{model_dir}/{short_name}/model_{param}"
+#     makedirs_safely(write_dir)
 
-    run_pipeline(model, train_df, model_params, write_dir, int_cause)
+#     train_df = pd.read_csv(f"{model_dir}/train_df.csv")
+#     model_params = format_params(model, param)
+
+#     results = run_pipeline(model, train_df, model_params, write_dir, int_cause)
+#     results.to_csv(f"{write_dir}/summary_stats.csv", index=False)
 
 
 if __name__ == '__main__':
 
-    model_params = str(sys.argv[1])
-    model = str(sys.argv[2])
-    model_dir = str(sys.argv[3])
-    int_cause = str(sys.argv[4])
-    short_model = str(sys.argv[5])
+    write_dir = str(sys.argv[1])
+    df_file = str(sys.argv[2])
+    model_param = str(sys.argv[3])
+    model_name = str(sys.argv[4])
+    short_name = str(sys.argv[5])
+    int_cause = str(sys.argv[6])
 
-    main(model_params, model, model_dir, int_cause, short_model)
+    # model_params = str(sys.argv[1])
+    # model = str(sys.argv[2])
+    # model_dir = str(sys.argv[3])
+    # int_cause = str(sys.argv[4])
+    # short_model = str(sys.argv[5])
+
+    main(model_param, model_name, write_dir, df_file, int_cause, short_name)
 
 
 # pipeline = Pipeline([
