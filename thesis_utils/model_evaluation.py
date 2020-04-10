@@ -106,8 +106,6 @@ def format_best_fit_params(best_fit, model_name):
     return best_model_params
 
 
-
-# IS THIS EVEN RIGHT? lol
 def generate_multiple_cause_rows(sample_df, test_df, cause):
     """
     Arguments:
@@ -118,64 +116,14 @@ def generate_multiple_cause_rows(sample_df, test_df, cause):
     Returns:
         cause-specific df with chain cols randomly sampled from test df
     """
+
     multiple_cause_cols = [x for x in list(test_df) if "multiple_cause" in x]
 
-    # create multiple cause columns in the sample df
-    sample_df = pd.concat([sample_df, pd.DataFrame(
-        columns=multiple_cause_cols)], sort=True, ignore_index=True)
     # subset to only cause-specific rows in test df
     cause_df = test_df.loc[test_df.cause_id == cause]
     assert len(cause_df) != 0, "subsetting test df failed in creating 500 datasets"
-
-    # drop these columns so .iloc will work
-    sample_df.drop(columns=["cause", "cause_id"], inplace=True)
-    # loop through rows of sample df
-    for index, row in sample_df.iterrows():
-        # should I be worried about replacement here?
-        # randomly sample 1 row in the cause-specific test df
-        chain = cause_df[multiple_cause_cols].sample(1).iloc[0]
-        # assign the multiple cause cols in the sample df to these chain cols
-        sample_df.iloc[[index], :] = chain.values
-    # add this column back
+    # assign chain causes by randomly sampling (with replacement) rows of cause-specific test df
+    sample_df = cause_df[multiple_cause_cols].sample(len(sample_df), replace=True).reset_index(drop=True)
     sample_df["cause_id"] = cause
+
     return sample_df
-
-# IS THIS EVEN RIGHT? lol
-
-
-def create_testing_datasets(test_df, write_dir, num_datasets=500,
-                            df_size=1000):
-
-    # dictionary of causes and their respective proportions in the data
-    cause_distribution = test_df['cause_id'].value_counts(
-        normalize=True).to_dict()
-    # 500 dirichlet distributions based on test data cause distribution
-    dts = np.random.dirichlet(alpha=list(
-        cause_distribution.values()), size=num_datasets)
-
-    # such a random guess..
-    # should these be the length of the actual test df?
-    df_size = df_size
-
-    datasets = [np.NaN] * len(dts)
-    for i in range(0, len(dts)):
-        df_dir = f"{write_dir}/dataset_{i+1}"
-        makedirs_safely(df_dir)
-        tdf = pd.DataFrame({"cause": [np.NaN] * df_size})
-        # dictionary of cause ids to each dirichlet distribution
-        cd = dict(zip(cause_distribution.keys(), dts[i]))
-        df = []
-        for cause in cd.keys():
-            print_log_message(f"{cause}_{i+1}")
-            # proportion from dirichlet dictates how many rows are assigned to a given cause
-            s_tdf = tdf.sample(
-                frac=cd[cause], replace=False).assign(cause_id=cause)
-            s_tdf = generate_multiple_cause_rows(s_tdf, test_df, cause)
-            df.append(s_tdf)
-        all_h = pd.concat(df, ignore_index=True, sort=True)
-        # # compare
-        # df['cause'].value_counts(normalize=True).to_dict()
-        # # to - these fractions aren't alwayss the same
-        # cd
-        datasets[i] = all_h
-        all_h.to_csv(f"{df_dir}/dataset.csv", index=False)
