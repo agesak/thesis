@@ -2,8 +2,6 @@ import pandas as pd
 import numpy as np
 import os
 
-from cod_prep.claude.claude_io import makedirs_safely
-from cod_prep.utils.misc import print_log_message
 from mcod_prep.utils.causes import get_most_detailed_inj_causes
 
 
@@ -123,7 +121,8 @@ def generate_multiple_cause_rows(sample_df, test_df, cause):
     cause_df = test_df.loc[test_df.cause_id == cause]
     assert len(cause_df) != 0, "subsetting test df failed in creating 500 datasets"
     # assign chain causes by randomly sampling (with replacement) rows of cause-specific test df
-    sample_df = cause_df[multiple_cause_cols].sample(len(sample_df), replace=True).reset_index(drop=True)
+    sample_df = cause_df[multiple_cause_cols].sample(
+        len(sample_df), replace=True).reset_index(drop=True)
     sample_df["cause_id"] = cause
 
     return sample_df

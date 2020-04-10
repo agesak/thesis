@@ -11,7 +11,6 @@ from thesis_utils.modeling import (read_in_data, create_train_test,
                                    random_forest_params,
                                    format_argparse_params)
 from thesis_utils.model_evaluation import (get_best_fit,
-                                           create_testing_datasets,
                                            format_best_fit_params)
 
 
@@ -23,9 +22,9 @@ class ModelLauncher():
                   "gbt": "GradientBoostingClassifier"}
     param_dict = {"rf": 2
                   }
-    num_datasets = 10
-    df_size = 250000
-    # df_size = 1000000
+    num_datasets = 25
+    # df_size = 250000
+    df_size = 1000000
     # but this doesnt work in the loop
     # model_dict.update("all":list(ModelLauncher.model_dict.values()))
 
@@ -54,10 +53,11 @@ class ModelLauncher():
         test_df.to_csv(f"{model_dir}/test_df.csv", index=False)
 
     def compare_models(self, short_name, model_name, make_datasets):
+        data_dir = f"{self.model_dir}/{self.description}"
 
         # get parameters of best model fit for given model
         best_fit = get_best_fit(
-            model_dir=f"{self.model_dir}/{self.description}", short_name=short_name)
+            model_dir=data_dir, short_name=short_name)
         best_model_params = format_best_fit_params(best_fit, model_name)
         print(best_model_params)
 
@@ -66,16 +66,21 @@ class ModelLauncher():
         makedirs_safely(write_dir)
 
         if make_datasets:
-            # read in test dataset
-            test_df = pd.read_csv(
-                f"{self.model_dir}/{self.description}/test_df.csv")
-            # this will write each dataset to numbered folders as well
-            # THIS FUNCTION IS LIKELY WRONG? (small proportions issue)
-            # also i might need to parallelize this by dataset number
-            create_testing_datasets(
-                test_df, write_dir, num_datasets=ModelLauncher.num_datasets, df_size=ModelLauncher.df_size)
+            for dataset_num in range(0, ModelLauncher.num_datasets):
+                dataset_num += 1
+                self.launch_create_testing_datasets(
+                    write_dir, data_dir, dataset_num, best_model_params)
 
         return best_model_params, write_dir
+
+    def launch_create_testing_datasets(self, write_dir, data_dir, dataset_num, best_model_params):
+
+        params = [data_dir, write_dir, dataset_num, ModelLauncher.df_size]
+        jobname = f"{self.int_cause}_dataset_{dataset_num}_{best_model_params}"
+        worker = f"/homes/agesak/thesis/analysis/create_test_datasets.py"
+        submit_mcod(jobname, "python", worker, cores=2, memory="6G",
+                    params=params, verbose=True, logging=True,
+                    jdrive=False, queue="i.q")
 
     def launch_testing_models(self, model_name, short_name, best_model_params,
                               write_dir, dataset_num):
@@ -138,6 +143,8 @@ class ModelLauncher():
                 best_model_params, write_dir = self.compare_models(
                     short_name, model_name, make_datasets=False)
                 num_datasets = len(next(os.walk(write_dir))[1])
+                failed = ModelLauncher.num_datasets-num_datasets
+                assert num_datasets == ModelLauncher.num_datasets, f"{failed} jobs creating test datasets failed"
                 for dataset in range(0, num_datasets):
                     dataset += 1
                     print(dataset)
