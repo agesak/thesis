@@ -20,7 +20,7 @@ def read_in_data(int_cause):
     print_log_message("reading in not limited use data")
     # it"s not good the sources are hard-coded
     udf = get_mcause_data(
-        phase="format_map", source=["COL_DANE", "ZAF_STATSSA"],
+        phase="format_map", source=["COL_DANE", "ZAF_STATSSA", "ISTAT"],
         sub_dirs=f"{int_cause}/thesis",
         data_type_id=9, assert_all_available=True,
         verbose=True, **BLOCK_RERUN)
@@ -69,7 +69,6 @@ def create_train_test(df, test, int_cause):
     # split train 75%, test 25%
     train_df, test_df = train_test_split(df, test_size=0.25)
 
-
     # will only train/test where we know UCoD
     # see how final results change when subsetting to where x59==0 -
     # so basically filtering out rows where
@@ -86,14 +85,17 @@ def random_forest_params(model):
     df = pd.read_csv("/homes/agesak/thesis/maps/parameters.csv")
     clf__estimator__n_estimators = df.loc[df[
         f"{model}"] == "clf__estimator__n_estimators",
-        f"{model}_value"].str.split(",")[0]
+        f"{model}_value"].tolist()
 
     # clf__estimator__max_features = df.loc[df[
     #     f"{model}"] == "clf__estimator__max_features",
     #     f"{model}_value"].tolist()
+    # clf__estimator__max_depth = df.loc[df[
+    #     f"{model}"] == "clf__estimator__max_depth",
+    #     f"{model}_value"].str.split(",")[1]
     clf__estimator__max_depth = df.loc[df[
         f"{model}"] == "clf__estimator__max_depth",
-        f"{model}_value"].str.split(",")[1]
+        f"{model}_value"].tolist()
     keys = "clf__estimator__n_estimators", "clf__estimator__max_depth"
     params = [dict(zip(keys, combo)) for combo in itertools.product(
         clf__estimator__n_estimators, clf__estimator__max_depth)]

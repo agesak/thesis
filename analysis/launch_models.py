@@ -6,17 +6,14 @@ import os
 from cod_prep.utils.misc import print_log_message
 from cod_prep.claude.claude_io import makedirs_safely
 from mcod_prep.utils.mcod_cluster_tools import submit_mcod
+from thesis.misc import str2bool
 from thesis_utils.modeling import (read_in_data, create_train_test,
                                    random_forest_params,
                                    format_argparse_params)
-from thesis_utils.model_evaluation import (str2bool, get_best_fit,
+from thesis_utils.model_evaluation import (get_best_fit,
                                            create_testing_datasets,
                                            format_best_fit_params)
 
-
-# function to read in all model outputs/precision metrics
-# then put in table? or some easy way to compare them
-# then compare to find best model parameters and save
 
 class ModelLauncher():
 
@@ -27,7 +24,7 @@ class ModelLauncher():
     param_dict = {"rf": 2
                   }
     num_datasets = 10
-    df_size = 1000
+    df_size = 250000
     # but this doesnt work in the loop
     # model_dict.update("all":list(ModelLauncher.model_dict.values()))
 
@@ -37,10 +34,11 @@ class ModelLauncher():
         self.phase = self.run_filters["phase"]
         self.int_cause = self.run_filters["int_cause"]
         self.model_types = self.run_filters["model_type"]
-        if self.run_filters["description"] == "":
+        if self.run_filters["description"] is None:
             self.description = "{:%Y_%m_%d}".format(datetime.datetime.now())
             if self.test:
                 self.description += "_test"
+            assert self.phase != "train_test", "your model run must be associated with an already existing train/test df date"
         else:
             self.description = self.run_filters["description"]
         self.model_dir = "/ihme/cod/prep/mcod/process_data/x59/thesis"
@@ -84,14 +82,16 @@ class ModelLauncher():
         best_model_dir = f"{self.model_dir}/{self.description}/{short_name}/model_{best_model_params}"
         dataset_dir = f"{write_dir}/dataset_{dataset_num}"
 
-        params = [best_model_dir, dataset_dir, best_model_params, self.int_cause]
+        params = [best_model_dir, dataset_dir,
+                  best_model_params, self.int_cause]
         jobname = f"{model_name}_{self.int_cause}_dataset_{dataset_num}_{best_model_params}"
         worker = f"/homes/agesak/thesis/analysis/run_predictions.py"
         submit_mcod(jobname, "python", worker, cores=2, memory="6G",
                     params=params, verbose=True, logging=True,
                     jdrive=False, queue="i.q")
 
-    def launch_training_models(self, model_name, short_name, model_param, model_dir):
+    def launch_training_models(self, model_name, short_name,
+                               model_param, model_dir):
 
         write_dir = f"{model_dir}/{short_name}/model_{model_param}"
         train_dir = f"{self.model_dir}/{self.description}"
@@ -136,7 +136,6 @@ class ModelLauncher():
                 model_name = ModelLauncher.model_dict[short_name]
                 best_model_params, write_dir = self.compare_models(
                     short_name, model_name, make_datasets=False)
-                # https://stackoverflow.com/questions/29769181/count-the-number-of-folders-in-a-directory-and-subdirectories
                 num_datasets = len(next(os.walk(write_dir))[1])
                 for dataset in range(0, num_datasets):
                     dataset += 1
@@ -155,16 +154,16 @@ if __name__ == "__main__":
     parser.add_argument("--test", type=str2bool, nargs="?",
                         const=True, default=False)
     parser.add_argument(
-        "--int_cause", help="", required=True,
+        "--int_cause", help="either x59 or y34", required=True,
         choices=["x59", "y34"])
     parser.add_argument(
-        "--model_type", help="",
+        "--model_type", help="short-hand name for ML classifier",
         required=True,
         choices=list(ModelLauncher.model_dict.keys()) + ["all"], nargs="*")
     # not required
     parser.add_argument(
         "--description",
-        help='model run; if "launch_model" then date is appended',
+        help='only required for phase train_test',
         type=str
     )
 

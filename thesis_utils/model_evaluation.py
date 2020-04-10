@@ -1,28 +1,15 @@
 import pandas as pd
 import numpy as np
 import os
-import argparse
 
 from cod_prep.claude.claude_io import makedirs_safely
 from mcod_prep.utils.causes import get_most_detailed_inj_causes
-# from thesis_utils.modeling import format_argparse_params
-
-
-def str2bool(v):
-    """https://stackoverflow.com/questions/15008758/parsing-boolean-values-with-argparse"""
-    if isinstance(v, bool):
-        return v
-    if v.lower() in ('yes', 'true', 't', 'y', '1'):
-        return True
-    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
-        return False
-    else:
-        raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
 def calculate_cccsmfa(y_true, y_pred):
     """ Calculate chance-corrected cause-specific mortality fraction accuracy
-    built from https://github.com/aflaxman/siaman16-va-minitutorial/blob/master/1-tutorial-notebooks/4-va_csmf.ipynb
+    built from https://github.com/aflaxman/siaman16-va-minitutorial/
+                blob/master/1-tutorial-notebooks/4-va_csmf.ipynb
     Arguments:
         y_true: array of true cause ids
         y_pred: array of predicted cause ids
@@ -74,10 +61,12 @@ def get_best_fit(model_dir, short_name):
     """Use the CCCSMFA to decide which model performs the best
     Arguments:
         model_dir: (str) parent directory where all models are located
-        short_name: (str) abbreviated ML classifier names - defined in thesis_analysis.launch_models
+        short_name: (str) abbreviated ML classifier names -
+                    defined in thesis_analysis.launch_models
     """
     dfs = []
-    for root, dirs, files in os.walk(os.path.join(os.path.join(model_dir, short_name))):
+    for root, dirs, files in os.walk(os.path.join(
+            os.path.join(model_dir, short_name))):
         for stats_dir in dirs:
             df = pd.read_csv(os.path.join(
                 model_dir, short_name, stats_dir, "summary_stats.csv"))
@@ -106,7 +95,8 @@ def format_best_fit_params(best_fit, model_name):
         params = params + best_fit[col].values.tolist()
     param_dict = dict(zip(list(best_fit), params))
     # merge on parameter df to ensure correct order
-    df = df.merge(pd.DataFrame.from_dict(param_dict, orient="index").reset_index(
+    df = df.merge(pd.DataFrame.from_dict(
+        param_dict, orient="index").reset_index(
     ).rename(columns={"index": model_name}), on=model_name)
     best_model_params = "_".join(
         df[0].dropna().astype(int).astype(str).values.tolist())
@@ -120,7 +110,8 @@ def format_best_fit_params(best_fit, model_name):
 def generate_multiple_cause_rows(sample_df, test_df, cause):
     """
     Arguments:
-        sample_df: cause-specific df with number of rows equal to cause-specific proportion from dirichlet
+        sample_df: cause-specific df with number of rows equal to
+                   cause-specific proportion from dirichlet
         test_df: true test df, corresponding to 25% of data
         cause: injuries cause of interest
     Returns:
@@ -151,7 +142,8 @@ def generate_multiple_cause_rows(sample_df, test_df, cause):
 # IS THIS EVEN RIGHT? lol
 
 
-def create_testing_datasets(test_df, write_dir, num_datasets=500, df_size=1000):
+def create_testing_datasets(test_df, write_dir, num_datasets=500,
+                            df_size=1000):
 
     # dictionary of causes and their respective proportions in the data
     cause_distribution = test_df['cause_id'].value_counts(
@@ -169,7 +161,7 @@ def create_testing_datasets(test_df, write_dir, num_datasets=500, df_size=1000):
         df_dir = f"{write_dir}/dataset_{i+1}"
         makedirs_safely(df_dir)
         tdf = pd.DataFrame({"cause": [np.NaN] * df_size})
-        # dictionary of cause ids (order preserved i think?) to each dirichlet distribution
+        # dictionary of cause ids to each dirichlet distribution
         cd = dict(zip(cause_distribution.keys(), dts[i]))
         df = []
         for cause in cd.keys():

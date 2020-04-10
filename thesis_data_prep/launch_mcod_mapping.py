@@ -25,8 +25,7 @@ class MCauseLauncher(object):
 
     }
 
-    # USE NZL AND ITALY LINKAGE???
-    # 'ITA_FVG_LINKAGE': '1G', 'NZL_LINKAGE_NMDS': '3G',
+
     source_memory_dict = {
         'TWN_MOH': '2G', 'MEX_INEGI': '10G', 'BRA_SIM': '15G', 'USA_NVSS': '20G',
         'COL_DANE': '2G', 'ZAF_STATSSA': '3G', 'ITA_ISTAT': '8G'}

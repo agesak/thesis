@@ -34,7 +34,6 @@ if __name__ == '__main__':
     print(model_name)
     print(short_name)
     print(int_cause)
-    
     main(model_param, model_name, write_dir, train_dir, int_cause, short_name)
 
 
@@ -69,15 +68,6 @@ if __name__ == '__main__':
 # ]
 
 
-# # chad thinks i should be using precision, accuracy, ccc, and ccscfma here (or the one that is most important which might be cccsfma?)
-# custom_scorer = make_scorer(
-#     precision_score, greater_is_better=True, average="micro")
-# gscv = GridSearchCV(pipeline, parameters, cv=5,
-#                     scoring=custom_scorer, n_jobs=-1, verbose=6)
-# # this takes literal years..
-# # i wonder if i could parallelize this by model and write the outputs somewhere...
-# # it's SVC that takes forever... (and maybe random forest?)
-# grid_results = gscv.fit(train_df["cause_info"], train_df["cause_id"])
 
 # # then pick best model parameters for each classifier - other example might be better for this
 # # want to output this as a table with metrics and model parameters..
@@ -91,30 +81,6 @@ if __name__ == '__main__':
 # # cause order for probabilities based off position
 # cause_order = dict(zip(list(range(0, 18, 1)), list(causes)))
 
-
-# # now dirichlet and resampling
-# # idk why this doesnt work - lots of rows with na cause ids
-# nrows = len(test_df)
-# test1 = pd.DataFrame(
-#     {"cause_id": nrows * [np.NaN], "cause_info": nrows * [np.NaN]})
-# K = []
-# for value in probs[0]:
-#     index_val = list(probs[0]).index(value)
-#     K = K + [value]
-#     change = test1.sample(frac=value, replace=False).index
-#     test1.loc[change, "cause_id"] = cause_order[index_val]
-
-# K = []
-# for value in probs[0]:
-#     index_val = list(probs[0]).index(value)
-#     K = K + [value]
-#     ugh = test1.sample(frac=value, replace=False)
-#     ugh["cause_id"] = cause_order[index_val]
-#     test1.update(ugh)
-
-# len(test1.loc[test1.cause_id.notnull()]) / len(test1)
-
-# # sample to get cause info col too
 
 # # same thing
 # # cv = CountVectorizer(lowercase=False)
