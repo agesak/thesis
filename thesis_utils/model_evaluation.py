@@ -3,6 +3,7 @@ import numpy as np
 import os
 
 from cod_prep.claude.claude_io import makedirs_safely
+from cod_prep.utils.misc import print_log_message
 from mcod_prep.utils.causes import get_most_detailed_inj_causes
 
 
@@ -104,9 +105,9 @@ def format_best_fit_params(best_fit, model_name):
 
     return best_model_params
 
+
+
 # IS THIS EVEN RIGHT? lol
-
-
 def generate_multiple_cause_rows(sample_df, test_df, cause):
     """
     Arguments:
@@ -165,7 +166,7 @@ def create_testing_datasets(test_df, write_dir, num_datasets=500,
         cd = dict(zip(cause_distribution.keys(), dts[i]))
         df = []
         for cause in cd.keys():
-            print(f"{cause}_{i+1}")
+            print_log_message(f"{cause}_{i+1}")
             # proportion from dirichlet dictates how many rows are assigned to a given cause
             s_tdf = tdf.sample(
                 frac=cd[cause], replace=False).assign(cause_id=cause)

@@ -6,7 +6,7 @@ import os
 from cod_prep.utils.misc import print_log_message
 from cod_prep.claude.claude_io import makedirs_safely
 from mcod_prep.utils.mcod_cluster_tools import submit_mcod
-from thesis.misc import str2bool
+from thesis_utils.misc import str2bool
 from thesis_utils.modeling import (read_in_data, create_train_test,
                                    random_forest_params,
                                    format_argparse_params)
@@ -25,6 +25,7 @@ class ModelLauncher():
                   }
     num_datasets = 10
     df_size = 250000
+    # df_size = 1000000
     # but this doesnt work in the loop
     # model_dict.update("all":list(ModelLauncher.model_dict.values()))
 
