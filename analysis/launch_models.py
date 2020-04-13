@@ -22,7 +22,7 @@ class ModelLauncher():
                   "gbt": "GradientBoostingClassifier"}
     param_dict = {"rf": 2
                   }
-    num_datasets = 25
+    num_datasets = 100
     # df_size = 250000
     df_size = 1000000
     # but this doesnt work in the loop
@@ -41,7 +41,7 @@ class ModelLauncher():
             assert self.phase != "train_test", "your model run must be associated with an already existing train/test df date"
         else:
             self.description = self.run_filters["description"]
-        self.model_dir = "/ihme/cod/prep/mcod/process_data/x59/thesis"
+        self.model_dir = f"/ihme/cod/prep/mcod/process_data/{self.int_cause}/thesis"
 
     def create_training_data(self, model_dir):
         makedirs_safely(model_dir)
@@ -78,7 +78,7 @@ class ModelLauncher():
         params = [data_dir, write_dir, dataset_num, ModelLauncher.df_size]
         jobname = f"{self.int_cause}_dataset_{dataset_num}_{best_model_params}"
         worker = f"/homes/agesak/thesis/analysis/create_test_datasets.py"
-        submit_mcod(jobname, "python", worker, cores=2, memory="6G",
+        submit_mcod(jobname, "python", worker, cores=2, memory="12G",
                     params=params, verbose=True, logging=True,
                     jdrive=False, queue="i.q")
 
@@ -90,7 +90,7 @@ class ModelLauncher():
 
         params = [best_model_dir, dataset_dir,
                   best_model_params, self.int_cause]
-        jobname = f"{model_name}_{self.int_cause}_dataset_{dataset_num}_{best_model_params}"
+        jobname = f"{model_name}_{self.int_cause}_predictions_dataset_{dataset_num}_{best_model_params}"
         worker = f"/homes/agesak/thesis/analysis/run_predictions.py"
         submit_mcod(jobname, "python", worker, cores=2, memory="6G",
                     params=params, verbose=True, logging=True,

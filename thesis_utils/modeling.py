@@ -20,7 +20,7 @@ def read_in_data(int_cause):
     print_log_message("reading in not limited use data")
     # it"s not good the sources are hard-coded
     udf = get_mcause_data(
-        phase="format_map", source=["COL_DANE", "ZAF_STATSSA", "ISTAT"],
+        phase="format_map", source=["COL_DANE", "ZAF_STATSSA", "ITA_ISTAT"],
         sub_dirs=f"{int_cause}/thesis",
         data_type_id=9, assert_all_available=True,
         verbose=True, **BLOCK_RERUN)
@@ -85,17 +85,14 @@ def random_forest_params(model):
     df = pd.read_csv("/homes/agesak/thesis/maps/parameters.csv")
     clf__estimator__n_estimators = df.loc[df[
         f"{model}"] == "clf__estimator__n_estimators",
-        f"{model}_value"].tolist()
+        f"{model}_value"].str.split(",")[0]
 
     # clf__estimator__max_features = df.loc[df[
     #     f"{model}"] == "clf__estimator__max_features",
     #     f"{model}_value"].tolist()
-    # clf__estimator__max_depth = df.loc[df[
-    #     f"{model}"] == "clf__estimator__max_depth",
-    #     f"{model}_value"].str.split(",")[1]
     clf__estimator__max_depth = df.loc[df[
         f"{model}"] == "clf__estimator__max_depth",
-        f"{model}_value"].tolist()
+        f"{model}_value"].str.split(",")[1]
     keys = "clf__estimator__n_estimators", "clf__estimator__max_depth"
     params = [dict(zip(keys, combo)) for combo in itertools.product(
         clf__estimator__n_estimators, clf__estimator__max_depth)]
