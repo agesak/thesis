@@ -69,7 +69,7 @@ def run_pipeline(model, model_df, model_params, write_dir, int_cause):
                "cccsfma": cccsfma_scorer}
 
     gscv = GridSearchCV(pipeline, model_params, cv=5,
-                        scoring=scoring, n_jobs=2, pre_dispatch=4,
+                        scoring=scoring, n_jobs=3, pre_dispatch=6,
                         # just taking wild guesses here people
                         refit="cccsfma", verbose=6)
 

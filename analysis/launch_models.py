@@ -107,7 +107,7 @@ class ModelLauncher():
                   model_name, short_name, self.int_cause]
         jobname = f"{model_name}_{self.int_cause}_{model_param}"
         worker = f"/homes/agesak/thesis/analysis/run_models.py"
-        submit_mcod(jobname, "python", worker, cores=2, memory="6G",
+        submit_mcod(jobname, "python", worker, cores=3, memory="12G",
                     params=params, verbose=True, logging=True,
                     jdrive=False, queue="i.q")
 

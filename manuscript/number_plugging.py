@@ -1,7 +1,8 @@
 import pandas as pd
 import numpy as np
-from db_queries import get_location_metadata
+from db_queries import get_location_metadata, get_cause_metadata
 from mcod_prep.utils.mcause_io import get_mcause_data
+from mcod_prep.utils.causes import get_most_detailed_inj_causes
 from thesis_utils.modeling import read_in_data
 
 LOCS = get_location_metadata(gbd_round_id=6, location_set_id=35)
@@ -89,3 +90,6 @@ x59 = read_in_data(int_cause="x59")
 # Deaths where an injuries-related ICD code was the
 # underlying cause of death were mapped to one of XX
 # most-detailed GBD injuries causes.
+causes = get_cause_metadata(gbd_round_id=6, cause_set_id=3)
+injuries = causes.loc[causes.acause.str.contains("inj")]
+len(injuries.query("most_detailed==1"))
