@@ -1,5 +1,5 @@
 import argparse
-
+import os
 
 def str2bool(v):
     """https://stackoverflow.com/questions/15008758/parsing-boolean-values-with-argparse"""
@@ -11,3 +11,10 @@ def str2bool(v):
         return False
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
+
+
+def remove_if_outputs_exists(file_dir, file):
+
+    filepath = os.path.join(file_dir, file)
+    if os.path.exists(filepath):
+        os.unlink(filepath)

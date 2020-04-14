@@ -6,7 +6,7 @@ import os
 from cod_prep.utils.misc import print_log_message
 from cod_prep.claude.claude_io import makedirs_safely
 from mcod_prep.utils.mcod_cluster_tools import submit_mcod
-from thesis_utils.misc import str2bool
+from thesis_utils.misc import str2bool, remove_if_outputs_exists
 from thesis_utils.modeling import (read_in_data, create_train_test,
                                    random_forest_params,
                                    format_argparse_params)
@@ -38,7 +38,7 @@ class ModelLauncher():
             self.description = "{:%Y_%m_%d}".format(datetime.datetime.now())
             if self.test:
                 self.description += "_test"
-            assert self.phase != "train_test", "your model run must be associated with an already existing train/test df date"
+            assert self.phase == "train_test", "your model run must be associated with an already existing train/test df date"
         else:
             self.description = self.run_filters["description"]
         self.model_dir = f"/ihme/cod/prep/mcod/process_data/{self.int_cause}/thesis"
@@ -96,18 +96,22 @@ class ModelLauncher():
                     params=params, verbose=True, logging=True,
                     jdrive=False, queue="i.q")
 
+
     def launch_training_models(self, model_name, short_name,
                                model_param, model_dir):
 
         write_dir = f"{model_dir}/{short_name}/model_{model_param}"
-        train_dir = f"{self.model_dir}/{self.description}"
         makedirs_safely(write_dir)
+        train_dir = f"{self.model_dir}/{self.description}"
+        # remove previous model runs
+        remove_if_outputs_exists(write_dir, "grid_results.pkl")
+        remove_if_outputs_exists(write_dir, "summary_stats.csv")
 
         params = [write_dir, train_dir, model_param,
                   model_name, short_name, self.int_cause]
         jobname = f"{model_name}_{self.int_cause}_{model_param}"
         worker = f"/homes/agesak/thesis/analysis/run_models.py"
-        submit_mcod(jobname, "python", worker, cores=3, memory="12G",
+        submit_mcod(jobname, "python", worker, cores=4, memory="25G",
                     params=params, verbose=True, logging=True,
                     jdrive=False, queue="i.q")
 
@@ -171,7 +175,7 @@ if __name__ == "__main__":
     # not required
     parser.add_argument(
         "--description",
-        help='only required for phase train_test',
+        help='required for all phases except train_test',
         type=str
     )
 
