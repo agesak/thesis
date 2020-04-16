@@ -53,9 +53,6 @@ def calculate_concordance(y_true, y_pred, int_cause):
     return cccc
 
 
-# FIGURING THIS OUT STILL
-# read in and append all summary files for a given model type
-# pick model parameters with highest value for a given precision metric
 def get_best_fit(model_dir, short_name):
     """Use the CCCSMFA to decide which model performs the best
     Arguments:
@@ -72,7 +69,7 @@ def get_best_fit(model_dir, short_name):
             dfs.append(df)
     df = pd.concat(dfs, sort=True, ignore_index=True)
 
-    # IDK WHAT ASCENDING SHOULD BE HERE BECAUSE IT'S NEGATIVE
+
     best_fit = df.sort_values(by="mean_test_cccsfma",
                               ascending=False).reset_index(drop=True).iloc[0:1]
     return best_fit
@@ -97,8 +94,11 @@ def format_best_fit_params(best_fit, model_name):
     df = df.merge(pd.DataFrame.from_dict(
         param_dict, orient="index").reset_index(
     ).rename(columns={"index": model_name}), on=model_name)
+    # could be a problem in other places... basically float rows convert whole row to float.. which isnt what i want
+    if model_name == "GradientBoostingClassifier":
+        df[0] = np.where(df["GradientBoostingClassifier_dtype"]=="int", df[0].apply(int).astype(str), df[0])
     best_model_params = "_".join(
-        df[0].dropna().astype(int).astype(str).values.tolist())
+    df[0].dropna().astype(str).values.tolist())
     # best_model_params = format_argparse_params(model_name, params)
 
     return best_model_params

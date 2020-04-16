@@ -6,6 +6,7 @@ from sklearn.externals import joblib
 from cod_prep.utils.misc import print_log_message
 from cod_prep.claude.claude_io import makedirs_safely
 from thesis_utils.model_evaluation import generate_multiple_cause_rows
+from thesis_utils.misc import remove_if_output_exists
 
 
 def create_test_datatsets(test_df, dirichlet_dict, write_dir, dataset_num,
@@ -23,6 +24,8 @@ def create_test_datatsets(test_df, dirichlet_dict, write_dir, dataset_num,
 
     df_dir = f"{write_dir}/dataset_{dataset_num}"
     makedirs_safely(df_dir)
+    remove_if_output_exists(df_dir, "dataset.csv")
+    remove_if_output_exists(df_dir, "dirichlet_distribution.pkl")
 
     dfs = pd.concat(dfs, sort=True, ignore_index=True)
     print_log_message(f"writing dataset {dataset_num} to a df")

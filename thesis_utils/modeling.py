@@ -81,12 +81,10 @@ def create_train_test(df, test, int_cause):
 
 def random_forest_params(model):
     assert model == "RandomForestClassifier", "wrong model type"
-
     df = pd.read_csv("/homes/agesak/thesis/maps/parameters.csv")
     clf__estimator__n_estimators = df.loc[df[
         f"{model}"] == "clf__estimator__n_estimators",
         f"{model}_value"].str.split(",")[0]
-
     # clf__estimator__max_features = df.loc[df[
     #     f"{model}"] == "clf__estimator__max_features",
     #     f"{model}_value"].tolist()
@@ -96,12 +94,50 @@ def random_forest_params(model):
     keys = "clf__estimator__n_estimators", "clf__estimator__max_depth"
     params = [dict(zip(keys, combo)) for combo in itertools.product(
         clf__estimator__n_estimators, clf__estimator__max_depth)]
-
     return params
 
 
+def naive_bayes_params(model):
+    assert model == "MultinomialNB", "wrong model type"
+    df = pd.read_csv("/homes/agesak/thesis/maps/parameters.csv")
+    clf__estimator__alpha = df.loc[df[
+        f"{model}"] == "clf__estimator__alpha",
+        f"{model}_value"].str.split(",")[0]
+    # well this is repetitive
+    keys = "clf__estimator__alpha", "clf__estimator__alpha"
+    params = [dict(zip(keys, combo)) for combo in itertools.product(
+        clf__estimator__alpha)]
+    return params
+
+def svm_params(model):
+    assert model == "SVC", "wrong model type"
+    df = pd.read_csv("/homes/agesak/thesis/maps/parameters.csv")
+    clf__estimator__C = df.loc[df[
+        f"{model}"] == "clf__estimator__C",
+        f"{model}_value"].str.split(",")[0]
+    clf__estimator__kernel = df.loc[df[
+        f"{model}"] == "clf__estimator__kernel",
+        f"{model}_value"].str.split(",")[1]
+    keys = "clf__estimator__C", "clf__estimator__kernel"
+    params = [dict(zip(keys, combo)) for combo in itertools.product(
+        clf__estimator__C, clf__estimator__kernel)]   
+    return params
+
+def gbt_params(model):
+    assert model == "GradientBoostingClassifier"
+    df = pd.read_csv("/homes/agesak/thesis/maps/parameters.csv")
+    clf__estimator__n_estimators = df.loc[df[
+        f"{model}"] == "clf__estimator__n_estimators",
+        f"{model}_value"].str.split(",")[0]
+    clf__estimator__learning_rate = df.loc[df[
+        f"{model}"] == "clf__estimator__learning_rate",
+        f"{model}_value"].str.split(",")[1]
+    keys = "clf__estimator__n_estimators", "clf__estimator__learning_rate"
+    params = [dict(zip(keys, combo)) for combo in itertools.product(
+        clf__estimator__n_estimators, clf__estimator__learning_rate)]   
+    return params
+
 def format_argparse_params(param, param_len):
-    # three bc 3 keys.. may change based on model? - could create model_type:param_number dictionary
     assert len(param) == param_len, "error.. more than one set of params"
     # turn all params into a single "_" separated string for argparse
     param = "_".join([str(x) for x in list(param.values())])

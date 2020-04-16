@@ -13,7 +13,7 @@ def str2bool(v):
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
-def remove_if_outputs_exists(file_dir, file):
+def remove_if_output_exists(file_dir, file):
 
     filepath = os.path.join(file_dir, file)
     if os.path.exists(filepath):

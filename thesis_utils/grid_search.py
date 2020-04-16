@@ -7,7 +7,9 @@ from thesis_utils.model_evaluation import (calculate_cccsmfa,
                                            calculate_concordance)
 
 from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.svm import SVC
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import precision_score, recall_score, make_scorer
 from sklearn.model_selection import GridSearchCV
@@ -36,18 +38,34 @@ def create_custom_scorers(int_cause):
 # chance-corrected cause-specific mortality fraction (CCCSMF) accuracy
 
 
+def transform_measure_cols(df, measure, model_name, params):
+    """Change """
+    measure_dict = {"int": int, "float": float}
+    measure_cols = df.loc[df[f"{model_name}_dtype"] ==
+                          measure, f"{model_name}"].unique().tolist()
+    for measure_col in measure_cols:
+        params[measure_col] = [measure_dict[measure](params[measure_col])]
+
+    return params, measure_cols
+
+
 def format_gridsearch_params(model_name, param):
 
     df = pd.read_csv("/homes/agesak/thesis/maps/parameters.csv")
+    measures = df[f"{model_name}_dtype"].dropna().unique().tolist()
     params = dict(zip(df[f"{model_name}"].unique().tolist(), param.split("_")))
-    int_cols = df.loc[df[f"{model_name}_dtype"] ==
-                      "int", f"{model_name}"].unique().tolist()
-    # certain parameters must be integers
-    for int_col in int_cols:
-        params[int_col] = [int(params[int_col])]
+    measure_cols = []
+    for measure in measures:
+        # dont need to do this for string
+        if measure != "str":
+            params, cols = transform_measure_cols(df, measure, model_name, params)
+            measure_cols = measure_cols + cols
+            params.update(params)
+
     # but all parameters must be lists
-    for col in np.setdiff1d(df[f"{model_name}"].unique().tolist(), int_cols):
-        params[col] = [params[col]]
+    if np.setdiff1d(df[f"{model_name}"].unique().tolist(), measure_cols) != ["nan"]:
+        for col in np.setdiff1d(df[f"{model_name}"].unique().tolist(), measure_cols):
+            params[col] = [params[col]]
     return params
 
 

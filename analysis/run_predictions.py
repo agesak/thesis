@@ -56,4 +56,9 @@ if __name__ == '__main__':
     best_model_params = str(sys.argv[3])
     int_cause = str(sys.argv[4])
 
+    print(best_model_dir)
+    print(dataset_dir)
+    print(best_model_params)
+    print(int_cause)
+    
     main(best_model_dir, dataset_dir, best_model_params, int_cause)

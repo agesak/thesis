@@ -1,4 +1,3 @@
-import pandas as pd
 import datetime
 import argparse
 import os
@@ -6,9 +5,11 @@ import os
 from cod_prep.utils.misc import print_log_message
 from cod_prep.claude.claude_io import makedirs_safely
 from mcod_prep.utils.mcod_cluster_tools import submit_mcod
-from thesis_utils.misc import str2bool, remove_if_outputs_exists
+from thesis_utils.misc import str2bool, remove_if_output_exists
 from thesis_utils.modeling import (read_in_data, create_train_test,
                                    random_forest_params,
+                                   naive_bayes_params,
+                                   svm_params, gbt_params,
                                    format_argparse_params)
 from thesis_utils.model_evaluation import (get_best_fit,
                                            format_best_fit_params)
@@ -20,8 +21,10 @@ class ModelLauncher():
                   "nb": "MultinomialNB",
                   "svm": "SVC",
                   "gbt": "GradientBoostingClassifier"}
-    param_dict = {"rf": 2
-                  }
+    param_dict = {"rf": 2,
+                  "nb": 1,
+                  "svm":2,
+                  "gbt":2}
     num_datasets = 100
     # df_size = 250000
     df_size = 1000000
@@ -59,7 +62,6 @@ class ModelLauncher():
         best_fit = get_best_fit(
             model_dir=data_dir, short_name=short_name)
         best_model_params = format_best_fit_params(best_fit, model_name)
-        print(best_model_params)
 
         # will use parameter specific folder for test datasets
         write_dir = f"{self.model_dir}/sample_dirichlet/{short_name}/{self.description}/{best_model_params}"
@@ -87,15 +89,15 @@ class ModelLauncher():
 
         best_model_dir = f"{self.model_dir}/{self.description}/{short_name}/model_{best_model_params}"
         dataset_dir = f"{write_dir}/dataset_{dataset_num}"
-
+        remove_if_output_exists(dataset_dir, "summary_stats.csv")
+        remove_if_output_exists(dataset_dir, "predictions.csv")
         params = [best_model_dir, dataset_dir,
                   best_model_params, self.int_cause]
         jobname = f"{model_name}_{self.int_cause}_predictions_dataset_{dataset_num}_{best_model_params}"
         worker = f"/homes/agesak/thesis/analysis/run_predictions.py"
-        submit_mcod(jobname, "python", worker, cores=2, memory="6G",
+        submit_mcod(jobname, "python", worker, cores=3, memory="12G",
                     params=params, verbose=True, logging=True,
                     jdrive=False, queue="i.q")
-
 
     def launch_training_models(self, model_name, short_name,
                                model_param, model_dir):
@@ -104,8 +106,8 @@ class ModelLauncher():
         makedirs_safely(write_dir)
         train_dir = f"{self.model_dir}/{self.description}"
         # remove previous model runs
-        remove_if_outputs_exists(write_dir, "grid_results.pkl")
-        remove_if_outputs_exists(write_dir, "summary_stats.csv")
+        remove_if_output_exists(write_dir, "grid_results.pkl")
+        remove_if_output_exists(write_dir, "summary_stats.csv")
 
         params = [write_dir, train_dir, model_param,
                   model_name, short_name, self.int_cause]
@@ -114,6 +116,16 @@ class ModelLauncher():
         submit_mcod(jobname, "python", worker, cores=4, memory="25G",
                     params=params, verbose=True, logging=True,
                     jdrive=False, queue="i.q")
+
+    def _launch_models(self, params, model_name, short_name):
+        """helper function to launch training models"""
+
+        for parameter in params:
+            param = format_argparse_params(
+                parameter, ModelLauncher.param_dict[short_name])
+            self.launch_training_models(model_name, short_name,
+                                        param,
+                                        model_dir=f"{self.model_dir}/{self.description}")
 
     def launch(self):
         if self.phase == "train_test":
@@ -126,14 +138,17 @@ class ModelLauncher():
                 if model_name == "RandomForestClassifier":
                     print_log_message("launching Random Forest")
                     params = random_forest_params(model_name)
-                    print_log_message(
+                elif model_name == "MultinomialNB":
+                    print_log_message("launching Naive Bayes")
+                    params = naive_bayes_params(model_name)
+                elif model_name == "SVC":
+                    print_log_message("launching SVC")
+                    params = svm_params(model_name)
+                elif model_name == "GradientBoostingClassifier":
+                    params = gbt_params(model_name)
+                print_log_message(
                         f"{len(params)} sets of model parameters")
-                    for parameter in params:
-                        param = format_argparse_params(
-                            parameter, ModelLauncher.param_dict[short_name])
-                        self.launch_training_models(model_name, short_name,
-                                                    param,
-                                                    model_dir=f"{self.model_dir}/{self.description}")
+                self._launch_models(params, model_name, short_name)
 
         if self.phase == "create_test_datasets":
             for short_name in self.model_types:
@@ -146,8 +161,10 @@ class ModelLauncher():
                 model_name = ModelLauncher.model_dict[short_name]
                 best_model_params, write_dir = self.compare_models(
                     short_name, model_name, make_datasets=False)
+                print(best_model_params)
+                print(write_dir)
                 num_datasets = len(next(os.walk(write_dir))[1])
-                failed = ModelLauncher.num_datasets-num_datasets
+                failed = ModelLauncher.num_datasets - num_datasets
                 assert num_datasets == ModelLauncher.num_datasets, f"{failed} jobs creating test datasets failed"
                 for dataset in range(0, num_datasets):
                     dataset += 1
