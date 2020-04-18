@@ -8,7 +8,7 @@ from thesis_utils.model_evaluation import (calculate_cccsmfa,
 
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-from sklearn.naive_bayes import MultinomialNB
+from sklearn.naive_bayes import MultinomialNB, BernoulliNB
 from sklearn.svm import SVC
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import precision_score, recall_score, make_scorer

@@ -98,7 +98,7 @@ def random_forest_params(model):
 
 
 def naive_bayes_params(model):
-    assert model == "MultinomialNB", "wrong model type"
+    assert (model == "MultinomialNB") | (model == "BernoulliNB"), "wrong model type"
     df = pd.read_csv("/homes/agesak/thesis/maps/parameters.csv")
     clf__estimator__alpha = df.loc[df[
         f"{model}"] == "clf__estimator__alpha",

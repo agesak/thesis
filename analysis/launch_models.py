@@ -18,11 +18,13 @@ from thesis_utils.model_evaluation import (get_best_fit,
 class ModelLauncher():
 
     model_dict = {"rf": "RandomForestClassifier",
-                  "nb": "MultinomialNB",
+                  "multi_nb": "MultinomialNB",
+                  "bernoulli_nb": "BernoulliNB",
                   "svm": "SVC",
                   "gbt": "GradientBoostingClassifier"}
     param_dict = {"rf": 2,
-                  "nb": 1,
+                  "multi_nb": 1,
+                  "bernoulli_nb": 1,
                   "svm":2,
                   "gbt":2}
     num_datasets = 100
@@ -139,7 +141,10 @@ class ModelLauncher():
                     print_log_message("launching Random Forest")
                     params = random_forest_params(model_name)
                 elif model_name == "MultinomialNB":
-                    print_log_message("launching Naive Bayes")
+                    print_log_message("launching Multinomial Naive Bayes")
+                    params = naive_bayes_params(model_name)
+                elif model_name == "BernoulliNB":
+                    print_log_message("launching Bernoulli Naive Bayes")
                     params = naive_bayes_params(model_name)
                 elif model_name == "SVC":
                     print_log_message("launching SVC")
