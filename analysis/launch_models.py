@@ -20,11 +20,13 @@ class ModelLauncher():
     model_dict = {"rf": "RandomForestClassifier",
                   "multi_nb": "MultinomialNB",
                   "bernoulli_nb": "BernoulliNB",
+                  "complement_nb": "ComplementNB",
                   "svm": "SVC",
                   "gbt": "GradientBoostingClassifier"}
-    param_dict = {"rf": 2,
+    param_dict = {"rf": 4,
                   "multi_nb": 1,
                   "bernoulli_nb": 1,
+                  "complement_nb":1,
                   "svm":2,
                   "gbt":2}
     num_datasets = 100
@@ -123,6 +125,7 @@ class ModelLauncher():
         """helper function to launch training models"""
 
         for parameter in params:
+            print(len(parameter))
             param = format_argparse_params(
                 parameter, ModelLauncher.param_dict[short_name])
             self.launch_training_models(model_name, short_name,
@@ -145,6 +148,9 @@ class ModelLauncher():
                     params = naive_bayes_params(model_name)
                 elif model_name == "BernoulliNB":
                     print_log_message("launching Bernoulli Naive Bayes")
+                    params = naive_bayes_params(model_name)
+                elif model_name == "ComplementNB":
+                    print_log_message("launching Complement Naive Bayes")
                     params = naive_bayes_params(model_name)
                 elif model_name == "SVC":
                     print_log_message("launching SVC")

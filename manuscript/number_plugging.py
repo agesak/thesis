@@ -75,7 +75,7 @@ df.groupby("location_name", as_index=False)["deaths"].sum(
 
 y34 = read_in_data(int_cause="y34")
 injuries = y34.deaths.sum()
-# percent injuries
+# percent injuries - use y34 because includes intentional injuries
 (injuries / total_deaths) * 100
 # percent y34
 (len(y34.query("y34==1")) / injuries) * 100

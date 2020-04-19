@@ -8,7 +8,7 @@ from thesis_utils.model_evaluation import (calculate_cccsmfa,
 
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-from sklearn.naive_bayes import MultinomialNB, BernoulliNB
+from sklearn.naive_bayes import MultinomialNB, BernoulliNB, ComplementNB
 from sklearn.svm import SVC
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import precision_score, recall_score, make_scorer
@@ -63,8 +63,10 @@ def format_gridsearch_params(model_name, param):
             params.update(params)
 
     # but all parameters must be lists
-    if np.setdiff1d(df[f"{model_name}"].unique().tolist(), measure_cols) != ["nan"]:
-        for col in np.setdiff1d(df[f"{model_name}"].unique().tolist(), measure_cols):
+    str_cols = np.setdiff1d(df[f"{model_name}"].unique().tolist(), measure_cols).tolist()
+    if not all(x == "nan" for x in str_cols):
+        str_cols.remove("nan")
+        for col in str_cols:
             params[col] = [params[col]]
     return params
 

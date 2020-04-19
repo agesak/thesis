@@ -91,14 +91,20 @@ def random_forest_params(model):
     clf__estimator__max_depth = df.loc[df[
         f"{model}"] == "clf__estimator__max_depth",
         f"{model}_value"].str.split(",")[1]
-    keys = "clf__estimator__n_estimators", "clf__estimator__max_depth"
+    clf__estimator__max_features= df.loc[df[
+        f"{model}"] == "clf__estimator__max_features",
+        f"{model}_value"].str.split(",")[2]
+    clf__estimator__criterion= df.loc[df[
+        f"{model}"] == "clf__estimator__criterion",
+        f"{model}_value"].str.split(",")[3]
+    keys = "clf__estimator__n_estimators", "clf__estimator__max_depth", "clf__estimator__max_features", "clf__estimator__criterion"
     params = [dict(zip(keys, combo)) for combo in itertools.product(
-        clf__estimator__n_estimators, clf__estimator__max_depth)]
+        clf__estimator__n_estimators, clf__estimator__max_depth, clf__estimator__max_features, clf__estimator__criterion)]
     return params
 
 
 def naive_bayes_params(model):
-    assert (model == "MultinomialNB") | (model == "BernoulliNB"), "wrong model type"
+    assert (model == "MultinomialNB") | (model == "BernoulliNB") | (model == "ComplementNB"), "wrong model type"
     df = pd.read_csv("/homes/agesak/thesis/maps/parameters.csv")
     clf__estimator__alpha = df.loc[df[
         f"{model}"] == "clf__estimator__alpha",
