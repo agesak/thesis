@@ -29,11 +29,13 @@ class ModelLauncher():
                   "complement_nb":1,
                   "svm":2,
                   "gbt":2}
+    memory_dict = {"rf":45,
+                    "multi_nb": 8,
+                    "bernoulli_nb":6,
+                    "complement_nb":6}
     num_datasets = 100
     # df_size = 250000
     df_size = 1000000
-    # but this doesnt work in the loop
-    # model_dict.update("all":list(ModelLauncher.model_dict.values()))
 
     def __init__(self, run_filters):
         self.run_filters = run_filters
@@ -117,7 +119,7 @@ class ModelLauncher():
                   model_name, short_name, self.int_cause]
         jobname = f"{model_name}_{self.int_cause}_{model_param}"
         worker = f"/homes/agesak/thesis/analysis/run_models.py"
-        submit_mcod(jobname, "python", worker, cores=4, memory="25G",
+        submit_mcod(jobname, "python", worker, cores=4, memory=f"{ModelLauncher.memory_dict[short_name]}G",
                     params=params, verbose=True, logging=True,
                     jdrive=False, queue="i.q")
 
@@ -125,7 +127,6 @@ class ModelLauncher():
         """helper function to launch training models"""
 
         for parameter in params:
-            print(len(parameter))
             param = format_argparse_params(
                 parameter, ModelLauncher.param_dict[short_name])
             self.launch_training_models(model_name, short_name,

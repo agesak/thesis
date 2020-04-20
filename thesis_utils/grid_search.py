@@ -34,9 +34,6 @@ def create_custom_scorers(int_cause):
 
     return precision_scorer, recall_scorer, cccsfma_scorer, concordance_scorer
 
-# precision, sensitivity, chance-corrected concordance (CCC)
-# chance-corrected cause-specific mortality fraction (CCCSMF) accuracy
-
 
 def transform_measure_cols(df, measure, model_name, params):
     """Change """
@@ -65,7 +62,8 @@ def format_gridsearch_params(model_name, param):
     # but all parameters must be lists
     str_cols = np.setdiff1d(df[f"{model_name}"].unique().tolist(), measure_cols).tolist()
     if not all(x == "nan" for x in str_cols):
-        str_cols.remove("nan")
+        if "nan" in str_cols:
+            str_cols.remove("nan")
         for col in str_cols:
             params[col] = [params[col]]
     return params
