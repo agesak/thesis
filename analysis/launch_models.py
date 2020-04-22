@@ -29,7 +29,7 @@ class ModelLauncher():
                   "complement_nb":1,
                   "svm":2,
                   "gbt":2}
-    memory_dict = {"rf":45,
+    memory_dict = {"rf":65,
                     "multi_nb": 8,
                     "bernoulli_nb":6,
                     "complement_nb":6}
@@ -121,7 +121,7 @@ class ModelLauncher():
         worker = f"/homes/agesak/thesis/analysis/run_models.py"
         submit_mcod(jobname, "python", worker, cores=4, memory=f"{ModelLauncher.memory_dict[short_name]}G",
                     params=params, verbose=True, logging=True,
-                    jdrive=False, queue="i.q")
+                    jdrive=False, queue="i.q", runtime="48:00:00")
 
     def _launch_models(self, params, model_name, short_name):
         """helper function to launch training models"""
