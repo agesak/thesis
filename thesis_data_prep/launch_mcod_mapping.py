@@ -25,7 +25,6 @@ class MCauseLauncher(object):
 
     }
 
-
     source_memory_dict = {
         'TWN_MOH': '2G', 'MEX_INEGI': '10G', 'BRA_SIM': '15G', 'USA_NVSS': '20G',
         'COL_DANE': '2G', 'ZAF_STATSSA': '3G', 'ITA_ISTAT': '8G'}
@@ -48,7 +47,8 @@ class MCauseLauncher(object):
         # drop External Causes of Death by Injuries and Poisonings source
         # these data are only used for drug overdoses (accidental poisoning)
         # and that's handled by some other code outside of this pipeline
-        datasets = datasets.loc[~(datasets['source'].isin(["EUROPE_INJ_POISON"]))]
+        datasets = datasets.loc[~(
+            datasets['source'].isin(["EUROPE_INJ_POISON"]))]
         # datasets = datasets.loc[~(datasets['source'].isin(["EUROPE_INJ_POISON", "TWN_MOH"]))]
         datasets = datasets.drop_duplicates(
             ['nid', 'extract_type_id']).set_index(
@@ -65,11 +65,13 @@ class MCauseLauncher(object):
                           code_map_version_id, nid, extract_type_id, data_type_id):
         """Submit qsub for format_map phase."""
         # remove existing output
-        delete_claude_output('format_map', nid, extract_type_id, sub_dirs=f"{int_cause}/thesis/")
+        delete_claude_output('format_map', nid, extract_type_id,
+                             sub_dirs=f"{int_cause}/thesis/")
         if source in self.limited_sources:
             limited_dir = get_limited_use_directory(source, int_cause)
             if os.path.exists(f"{limited_dir}/{nid}_{extract_type_id}_format_map.csv"):
-                os.remove(f"{limited_dir}/{nid}_{extract_type_id}_format_map.csv")
+                os.remove(
+                    f"{limited_dir}/{nid}_{extract_type_id}_format_map.csv")
         worker = f"{self.thesis_code}/run_phase_format_map.py"
         params = [int(year), source, int_cause, int(code_system_id), int(code_map_version_id),
                   int(self.cause_set_version_id), int(nid), int(extract_type_id), int(data_type_id)]
@@ -84,7 +86,6 @@ class MCauseLauncher(object):
             runtime = '02:00:00'
         else:
             runtime = '01::00'
-
 
         submit_mcod(
             jobname, 'python', worker, cores=1, memory=memory, params=params,
@@ -125,7 +126,8 @@ class MCauseLauncher(object):
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(description="format and mapping for machine learning methods")
+    parser = argparse.ArgumentParser(
+        description="format and mapping for machine learning methods")
     parser.add_argument("intermediate_causes", help="intermediate cause(s) of interest",
                         nargs="+", choices=MCoDMapper.possible_int_causes)
     parser.add_argument('phase', help='data processing phases', nargs='+',
@@ -134,7 +136,8 @@ if __name__ == '__main__':
         'data_type_id', help="see cod.data_type for more options, you probably want 9", nargs='+')
     parser.add_argument('--source', nargs='*')
     parser.add_argument('--year_id', type=int, nargs='*')
-    parser.add_argument('--code_system_id', help="1 is ICD10, 6 is ICD9", nargs='*')
+    parser.add_argument('--code_system_id',
+                        help="1 is ICD10, 6 is ICD9", nargs='*')
     parser.add_argument('--nid', nargs="*")
     args = parser.parse_args()
     print(vars(args))

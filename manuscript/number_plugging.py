@@ -38,7 +38,7 @@ def get_country_names(df):
 # from the United States, XX location-years of data from South Africa,
 # XX location-years of data from Columbia,
 # and XX location-years of data from Italy.
-df = read_in_data(int_cause="x59")
+df = read_in_data(int_cause="x59", code_system_id=None)
 df = get_country_names(df)
 ly_df = df.groupby("location_name", as_index=False).agg(
     {"most_detailed_id": "nunique", "year_id": "nunique"})
@@ -73,7 +73,7 @@ df = get_country_names(df)
 df.groupby("location_name", as_index=False)["deaths"].sum(
 ).to_csv("/home/j/temp/agesak/thesis/tables/total_records.csv", index=False)
 
-y34 = read_in_data(int_cause="y34")
+y34 = read_in_data(int_cause="y34", code_system_id=None)
 injuries = y34.deaths.sum()
 # percent injuries - use y34 because includes intentional injuries
 (injuries / total_deaths) * 100
@@ -84,7 +84,7 @@ y34 = get_country_names(y34)
 y34.groupby("location_name", as_index=False)["deaths"].sum().to_csv(
     "/home/j/temp/agesak/thesis/tables/injuries_records.csv", index=False)
 # percent x59
-x59 = read_in_data(int_cause="x59")
+x59 = read_in_data(int_cause="x59", code_system_id=None)
 (len(x59.query("x59==1")) / injuries) * 100
 
 # Deaths where an injuries-related ICD code was the

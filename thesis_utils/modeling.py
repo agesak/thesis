@@ -6,6 +6,7 @@ import itertools
 from sklearn.model_selection import train_test_split
 
 from mcod_prep.utils.mcause_io import get_mcause_data
+from mcod_prep.utils.nids import get_datasets
 from cod_prep.utils.misc import print_log_message
 from db_queries import get_location_metadata
 from thesis_utils.directories import get_limited_use_directory
@@ -14,7 +15,7 @@ from thesis_data_prep.launch_mcod_mapping import MCauseLauncher
 BLOCK_RERUN = {"block_rerun": False, "force_rerun": True}
 
 
-def read_in_data(int_cause):
+def read_in_data(int_cause, code_system_id=None):
     """Read in and append all MCoD data"""
 
     print_log_message("reading in not limited use data")
@@ -22,17 +23,26 @@ def read_in_data(int_cause):
     udf = get_mcause_data(
         phase="format_map", source=["COL_DANE", "ZAF_STATSSA", "ITA_ISTAT"],
         sub_dirs=f"{int_cause}/thesis",
-        data_type_id=9, assert_all_available=True,
+        data_type_id=9, code_system_id=code_system_id,
+        assert_all_available=True,
         verbose=True, **BLOCK_RERUN)
 
     print_log_message("reading in limited use data")
+    datasets = get_datasets(**{"force_rerun": True, "block_rerun": False,
+                               "source": MCauseLauncher.limited_sources,
+                               "code_system_id": code_system_id})
+    limited_metadata = datasets.apply(lambda x: str(
+        x['nid']) + "_" + str(x['extract_type_id']), axis=1).values
+
     dfs = []
     for source in MCauseLauncher.limited_sources:
         limited_dir = get_limited_use_directory(source, int_cause)
         csvfiles = glob.glob(os.path.join(limited_dir, "*.csv"))
         for file in csvfiles:
-            df = pd.read_csv(file)
-            dfs.append(df)
+            if any(meta in file for meta in limited_metadata):
+                print(file)
+                df = pd.read_csv(file)
+                dfs.append(df)
     ldf = pd.concat(dfs, ignore_index=True, sort=True)
     df = pd.concat([udf, ldf], sort=True, ignore_index=True)
 
@@ -91,10 +101,10 @@ def random_forest_params(model):
     clf__estimator__max_depth = df.loc[df[
         f"{model}"] == "clf__estimator__max_depth",
         f"{model}_value"].str.split(",")[1]
-    clf__estimator__max_features= df.loc[df[
+    clf__estimator__max_features = df.loc[df[
         f"{model}"] == "clf__estimator__max_features",
         f"{model}_value"].str.split(",")[2]
-    clf__estimator__criterion= df.loc[df[
+    clf__estimator__criterion = df.loc[df[
         f"{model}"] == "clf__estimator__criterion",
         f"{model}_value"].str.split(",")[3]
     keys = "clf__estimator__n_estimators", "clf__estimator__max_depth", "clf__estimator__max_features", "clf__estimator__criterion"
@@ -104,7 +114,8 @@ def random_forest_params(model):
 
 
 def naive_bayes_params(model):
-    assert (model == "MultinomialNB") | (model == "BernoulliNB") | (model == "ComplementNB"), "wrong model type"
+    assert (model == "MultinomialNB") | (model == "BernoulliNB") | (
+        model == "ComplementNB"), "wrong model type"
     df = pd.read_csv("/homes/agesak/thesis/maps/parameters.csv")
     clf__estimator__alpha = df.loc[df[
         f"{model}"] == "clf__estimator__alpha",
@@ -114,6 +125,7 @@ def naive_bayes_params(model):
     params = [dict(zip(keys, combo)) for combo in itertools.product(
         clf__estimator__alpha)]
     return params
+
 
 def svm_params(model):
     assert model == "SVC", "wrong model type"
@@ -126,8 +138,9 @@ def svm_params(model):
         f"{model}_value"].str.split(",")[1]
     keys = "clf__estimator__C", "clf__estimator__kernel"
     params = [dict(zip(keys, combo)) for combo in itertools.product(
-        clf__estimator__C, clf__estimator__kernel)]   
+        clf__estimator__C, clf__estimator__kernel)]
     return params
+
 
 def gbt_params(model):
     assert model == "GradientBoostingClassifier"
@@ -138,10 +151,14 @@ def gbt_params(model):
     clf__estimator__learning_rate = df.loc[df[
         f"{model}"] == "clf__estimator__learning_rate",
         f"{model}_value"].str.split(",")[1]
-    keys = "clf__estimator__n_estimators", "clf__estimator__learning_rate"
+    clf__estimator__max_depth = df.loc[df[
+        f"{model}"] == "clf__estimator__max_depth",
+        f"{model}_value"].str.split(",")[2]
+    keys = "clf__estimator__n_estimators", "clf__estimator__learning_rate", "clf__estimator__max_depth"
     params = [dict(zip(keys, combo)) for combo in itertools.product(
-        clf__estimator__n_estimators, clf__estimator__learning_rate)]   
+        clf__estimator__n_estimators, clf__estimator__learning_rate, clf__estimator__max_depth)]
     return params
+
 
 def format_argparse_params(param, param_len):
     assert len(param) == param_len, "error.. more than one set of params"

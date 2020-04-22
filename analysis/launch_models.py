@@ -26,13 +26,14 @@ class ModelLauncher():
     param_dict = {"rf": 4,
                   "multi_nb": 1,
                   "bernoulli_nb": 1,
-                  "complement_nb":1,
-                  "svm":2,
-                  "gbt":2}
-    memory_dict = {"rf":65,
-                    "multi_nb": 8,
-                    "bernoulli_nb":6,
-                    "complement_nb":6}
+                  "complement_nb": 1,
+                  "svm": 2,
+                  "gbt": 3}
+    memory_dict = {"rf": 65,
+                   "multi_nb": 8,
+                   "bernoulli_nb": 6,
+                   "complement_nb": 6,
+                   "gbt": 30}
     num_datasets = 100
     # df_size = 250000
     df_size = 1000000
@@ -43,6 +44,7 @@ class ModelLauncher():
         self.phase = self.run_filters["phase"]
         self.int_cause = self.run_filters["int_cause"]
         self.model_types = self.run_filters["model_type"]
+        self.code_system_id = self.run_filters["code_system_id"]
         if self.run_filters["description"] is None:
             self.description = "{:%Y_%m_%d}".format(datetime.datetime.now())
             if self.test:
@@ -54,7 +56,7 @@ class ModelLauncher():
 
     def create_training_data(self, model_dir):
         makedirs_safely(model_dir)
-        df = read_in_data(self.int_cause)
+        df = read_in_data(self.int_cause, self.code_system_id)
         train_df, test_df = create_train_test(
             df, test=self.test, int_cause=self.int_cause)
         print_log_message("writing train/test to df")
@@ -159,7 +161,7 @@ class ModelLauncher():
                 elif model_name == "GradientBoostingClassifier":
                     params = gbt_params(model_name)
                 print_log_message(
-                        f"{len(params)} sets of model parameters")
+                    f"{len(params)} sets of model parameters")
                 self._launch_models(params, model_name, short_name)
 
         if self.phase == "create_test_datasets":
@@ -202,6 +204,9 @@ if __name__ == "__main__":
         required=True,
         choices=list(ModelLauncher.model_dict.keys()) + ["all"], nargs="*")
     # not required
+    parser.add_argument(
+        "--code_system_id", help="1 is ICD 10, 6 is ICD9",
+        choices=[1, 6], type=int)
     parser.add_argument(
         "--description",
         help='required for all phases except train_test',
