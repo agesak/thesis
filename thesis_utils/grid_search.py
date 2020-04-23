@@ -7,7 +7,8 @@ from thesis_utils.model_evaluation import (calculate_cccsmfa,
                                            calculate_concordance)
 
 from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.experimental import enable_hist_gradient_boosting
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, HistGradientBoostingClassifier
 from sklearn.naive_bayes import MultinomialNB, BernoulliNB, ComplementNB
 from sklearn.svm import SVC
 from sklearn.pipeline import Pipeline

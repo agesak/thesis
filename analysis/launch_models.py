@@ -10,6 +10,7 @@ from thesis_utils.modeling import (read_in_data, create_train_test,
                                    random_forest_params,
                                    naive_bayes_params,
                                    svm_params, gbt_params,
+                                   hist_gbt_params,
                                    format_argparse_params)
 from thesis_utils.model_evaluation import (get_best_fit,
                                            format_best_fit_params)
@@ -22,18 +23,21 @@ class ModelLauncher():
                   "bernoulli_nb": "BernoulliNB",
                   "complement_nb": "ComplementNB",
                   "svm": "SVC",
-                  "gbt": "GradientBoostingClassifier"}
+                  "gbt": "GradientBoostingClassifier",
+                  "hist_gbt": "HistGradientBoostingClassifier"}
     param_dict = {"rf": 4,
                   "multi_nb": 1,
                   "bernoulli_nb": 1,
                   "complement_nb": 1,
                   "svm": 2,
-                  "gbt": 3}
+                  "gbt": 3,
+                  "hist_gbt": 2}
     memory_dict = {"rf": 65,
                    "multi_nb": 8,
                    "bernoulli_nb": 6,
                    "complement_nb": 6,
-                   "gbt": 30}
+                   "gbt": 30,
+                   "hist_gbt": 30}
     num_datasets = 100
     # df_size = 250000
     df_size = 1000000
@@ -160,6 +164,8 @@ class ModelLauncher():
                     params = svm_params(model_name)
                 elif model_name == "GradientBoostingClassifier":
                     params = gbt_params(model_name)
+                elif model_name == "HistGradientBoostingClassifier":
+                    params = hist_gbt_params(model_name)
                 print_log_message(
                     f"{len(params)} sets of model parameters")
                 self._launch_models(params, model_name, short_name)

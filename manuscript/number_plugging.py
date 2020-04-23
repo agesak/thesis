@@ -93,3 +93,10 @@ x59 = read_in_data(int_cause="x59", code_system_id=None)
 causes = get_cause_metadata(gbd_round_id=6, cause_set_id=3)
 injuries = causes.loc[causes.acause.str.contains("inj")]
 len(injuries.query("most_detailed==1"))
+
+
+# figure 3
+df = read_in_data(int_cause="x59", code_system_id=None)
+df = get_country_names(df)
+gc = df.query("cause_id==743")
+gc = gc.groupby(["location_name", "x59"], as_index=False)["deaths"].sum()
