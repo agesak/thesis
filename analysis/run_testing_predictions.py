@@ -1,3 +1,4 @@
+"""predict on test datasets"""
 import pandas as pd
 import sys
 from thesis_utils.model_evaluation import (calculate_cccsmfa,
@@ -42,8 +43,8 @@ def main(best_model_dir, dataset_dir, best_model_params, int_cause):
                           y_pred=dataset.predicted, average="micro")
 
     # maybe save something identifiable about model
-    df = pd.DataFrame({"concordance": [concordance], "cccsmfa": [
-                      cccsmfa], "recall": [recall], "precision": [precision],
+    df = pd.DataFrame({"Concordance": [concordance], "CCCSMFA": [
+                      cccsmfa], "Recall": [recall], "Precision": [precision],
         "best_model_params": [best_model_params]})
     df.to_csv(f"{dataset_dir}/summary_stats.csv", index=False)
     dataset.to_csv(f"{dataset_dir}/predictions.csv", index=False)

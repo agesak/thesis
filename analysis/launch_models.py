@@ -10,7 +10,6 @@ from thesis_utils.modeling import (read_in_data, create_train_test,
                                    random_forest_params,
                                    naive_bayes_params,
                                    svm_params, gbt_params,
-                                   hist_gbt_params,
                                    format_argparse_params)
 from thesis_utils.model_evaluation import (get_best_fit,
                                            format_best_fit_params)
@@ -23,21 +22,18 @@ class ModelLauncher():
                   "bernoulli_nb": "BernoulliNB",
                   "complement_nb": "ComplementNB",
                   "svm": "SVC",
-                  "gbt": "GradientBoostingClassifier",
-                  "hist_gbt": "HistGradientBoostingClassifier"}
+                  "gbt": "GradientBoostingClassifier"}
     param_dict = {"rf": 4,
                   "multi_nb": 1,
                   "bernoulli_nb": 1,
                   "complement_nb": 1,
                   "svm": 2,
-                  "gbt": 3,
-                  "hist_gbt": 2}
+                  "gbt": 3}
     memory_dict = {"rf": 65,
                    "multi_nb": 8,
                    "bernoulli_nb": 6,
                    "complement_nb": 6,
-                   "gbt": 30,
-                   "hist_gbt": 30}
+                   "gbt": 30}
     num_datasets = 100
     # df_size = 250000
     df_size = 1000000
@@ -61,11 +57,12 @@ class ModelLauncher():
     def create_training_data(self, model_dir):
         makedirs_safely(model_dir)
         df = read_in_data(self.int_cause, self.code_system_id)
-        train_df, test_df = create_train_test(
+        train_df, test_df, int_cause_df = create_train_test(
             df, test=self.test, int_cause=self.int_cause)
         print_log_message("writing train/test to df")
         train_df.to_csv(f"{model_dir}/train_df.csv", index=False)
         test_df.to_csv(f"{model_dir}/test_df.csv", index=False)
+        int_cause_df.to_csv(f"{model_dir}/int_cause_df.csv", index=False)
 
     def compare_models(self, short_name, model_name, make_datasets):
         data_dir = f"{self.model_dir}/{self.description}"
@@ -96,6 +93,17 @@ class ModelLauncher():
                     params=params, verbose=True, logging=True,
                     jdrive=False, queue="i.q")
 
+    def launch_int_cause_predictions(self, write_dir, short_name):
+        data_dir = f"{self.model_dir}/{self.description}"
+
+        params = [write_dir, data_dir, self.int_cause,
+                  ModelLauncher.param_dict[short_name]]
+        jobname = f"{ModelLauncher.param_dict[short_name]}_{self.int_cause}_predictions"
+        worker = f"/homes/agesak/thesis/analysis/run_unobserved_predictions.py"
+        submit_mcod(jobname, "python", worker, cores=2, memory="12G",
+                    params=params, verbose=True, logging=True,
+                    jdrive=False, queue="i.q")
+
     def launch_testing_models(self, model_name, short_name, best_model_params,
                               write_dir, dataset_num):
 
@@ -106,7 +114,7 @@ class ModelLauncher():
         params = [best_model_dir, dataset_dir,
                   best_model_params, self.int_cause]
         jobname = f"{model_name}_{self.int_cause}_predictions_dataset_{dataset_num}_{best_model_params}"
-        worker = f"/homes/agesak/thesis/analysis/run_predictions.py"
+        worker = f"/homes/agesak/thesis/analysis/run_testing_predictions.py"
         submit_mcod(jobname, "python", worker, cores=3, memory="12G",
                     params=params, verbose=True, logging=True,
                     jdrive=False, queue="i.q")
@@ -125,7 +133,8 @@ class ModelLauncher():
                   model_name, short_name, self.int_cause]
         jobname = f"{model_name}_{self.int_cause}_{model_param}"
         worker = f"/homes/agesak/thesis/analysis/run_models.py"
-        submit_mcod(jobname, "python", worker, cores=4, memory=f"{ModelLauncher.memory_dict[short_name]}G",
+        submit_mcod(jobname, "python", worker, cores=4,
+                    memory=f"{ModelLauncher.memory_dict[short_name]}G",
                     params=params, verbose=True, logging=True,
                     jdrive=False, queue="i.q", runtime="48:00:00")
 
@@ -164,8 +173,6 @@ class ModelLauncher():
                     params = svm_params(model_name)
                 elif model_name == "GradientBoostingClassifier":
                     params = gbt_params(model_name)
-                elif model_name == "HistGradientBoostingClassifier":
-                    params = hist_gbt_params(model_name)
                 print_log_message(
                     f"{len(params)} sets of model parameters")
                 self._launch_models(params, model_name, short_name)
@@ -193,13 +200,21 @@ class ModelLauncher():
                         model_name, short_name, best_model_params,
                         write_dir, dataset)
 
+        if self.phase == "launch_int_cause_predictions":
+            for short_name in self.model_types:
+                model_name = ModelLauncher.model_dict[short_name]
+                best_model_params, write_dir = self.compare_models(
+                    short_name, model_name, make_datasets=False)
+                self.launch_int_cause_predictions(self, write_dir, short_name)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="")
     parser.add_argument(
         "--phase", help="", required=True,
         choices=["train_test", "launch_training_model",
-                 "create_test_datasets", "launch_testing_models"])
+                 "create_test_datasets", "launch_testing_models",
+                 "launch_int_cause_predictions"])
     parser.add_argument("--test", type=str2bool, nargs="?",
                         const=True, default=False)
     parser.add_argument(

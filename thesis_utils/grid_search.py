@@ -7,8 +7,7 @@ from thesis_utils.model_evaluation import (calculate_cccsmfa,
                                            calculate_concordance)
 
 from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.experimental import enable_hist_gradient_boosting
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, HistGradientBoostingClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.naive_bayes import MultinomialNB, BernoulliNB, ComplementNB
 from sklearn.svm import SVC
 from sklearn.pipeline import Pipeline
@@ -28,12 +27,12 @@ def create_custom_scorers(int_cause):
     # tp / (tp + fn)
     recall_scorer = make_scorer(
         recall_score, greater_is_better=True, average="micro")
-    cccsfma_scorer = make_scorer(
+    cccsmfa_scorer = make_scorer(
         calculate_cccsmfa, greater_is_better=True)
     concordance_scorer = make_scorer(
         calculate_concordance, greater_is_better=True, int_cause=int_cause)
 
-    return precision_scorer, recall_scorer, cccsfma_scorer, concordance_scorer
+    return precision_scorer, recall_scorer, cccsmfa_scorer, concordance_scorer
 
 
 def transform_measure_cols(df, measure, model_name, params):
@@ -56,12 +55,14 @@ def format_gridsearch_params(model_name, param):
     for measure in measures:
         # dont need to do this for string
         if measure != "str":
-            params, cols = transform_measure_cols(df, measure, model_name, params)
+            params, cols = transform_measure_cols(
+                df, measure, model_name, params)
             measure_cols = measure_cols + cols
             params.update(params)
 
     # but all parameters must be lists
-    str_cols = np.setdiff1d(df[f"{model_name}"].unique().tolist(), measure_cols).tolist()
+    str_cols = np.setdiff1d(
+        df[f"{model_name}"].unique().tolist(), measure_cols).tolist()
     if not all(x == "nan" for x in str_cols):
         if "nan" in str_cols:
             str_cols.remove("nan")
@@ -79,18 +80,17 @@ def run_pipeline(model, model_df, model_params, write_dir, int_cause):
 
     model_params.update({"clf__estimator": [eval(model)()]})
 
-    precision_scorer, recall_scorer, cccsfma_scorer, concordance_scorer = create_custom_scorers(
+    precision_scorer, recall_scorer, cccsmfa_scorer, concordance_scorer = create_custom_scorers(
         int_cause)
 
     scoring = {"precision": precision_scorer,
                "sensitivity": recall_scorer,
                "concordance": concordance_scorer,
-               "cccsfma": cccsfma_scorer}
+               "cccsmfa": cccsmfa_scorer}
 
     gscv = GridSearchCV(pipeline, model_params, cv=5,
                         scoring=scoring, n_jobs=3, pre_dispatch=6,
-                        # just taking wild guesses here people
-                        refit="cccsfma", verbose=6)
+                        refit="cccsmfa", verbose=6)
 
     grid_results = gscv.fit(model_df["cause_info"], model_df["cause_id"])
 

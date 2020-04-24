@@ -69,7 +69,6 @@ def get_best_fit(model_dir, short_name):
             dfs.append(df)
     df = pd.concat(dfs, sort=True, ignore_index=True)
 
-
     best_fit = df.sort_values(by="mean_test_cccsfma",
                               ascending=False).reset_index(drop=True).iloc[0:1]
     return best_fit
@@ -96,9 +95,9 @@ def format_best_fit_params(best_fit, model_name):
     ).rename(columns={"index": model_name}), on=model_name)
     # could be a problem in other places... basically float rows convert whole row to float.. which isnt what i want
     if model_name == "GradientBoostingClassifier":
-        df[0] = np.where(df["GradientBoostingClassifier_dtype"]=="int", df[0].apply(int).astype(str), df[0])
+        df[0] = np.where(df["GradientBoostingClassifier_dtype"] == "int", df[0].apply(int).astype(str), df[0])
     best_model_params = "_".join(
-    df[0].dropna().astype(str).values.tolist())
+        df[0].dropna().astype(str).values.tolist())
     # best_model_params = format_argparse_params(model_name, params)
 
     return best_model_params

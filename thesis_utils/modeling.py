@@ -23,7 +23,8 @@ def read_in_data(int_cause, code_system_id=None):
     if code_system_id != 6:
         # col, zaf, and ita dont have icd 9
         udf = get_mcause_data(
-            phase="format_map", source=["COL_DANE", "ZAF_STATSSA", "ITA_ISTAT"],
+            phase="format_map",
+            source=["COL_DANE", "ZAF_STATSSA", "ITA_ISTAT"],
             sub_dirs=f"{int_cause}/thesis",
             data_type_id=9, code_system_id=code_system_id,
             assert_all_available=True,
@@ -91,7 +92,7 @@ def create_train_test(df, test, int_cause):
     # train_df = train_df[["cause_id", "cause_info",
     #                      f"{int_cause}"]].query("cause_id!=743")
 
-    return train_df, test_df
+    return train_df, test_df, df.query(f"cause_id==743 & {int_cause}==1")
 
 
 def random_forest_params(model):
@@ -162,21 +163,6 @@ def gbt_params(model):
     keys = "clf__estimator__n_estimators", "clf__estimator__learning_rate", "clf__estimator__max_depth"
     params = [dict(zip(keys, combo)) for combo in itertools.product(
         clf__estimator__n_estimators, clf__estimator__learning_rate, clf__estimator__max_depth)]
-    return params
-
-
-def hist_gbt_params(model):
-    assert model == "HistGradientBoostingClassifier"
-    df = pd.read_csv("/homes/agesak/thesis/maps/parameters.csv")
-    clf__estimator__learning_rate = df.loc[df[
-        f"{model}"] == "clf__estimator__learning_rate",
-        f"{model}_value"].str.split(",")[0]
-    clf__estimator__max_depth = df.loc[df[
-        f"{model}"] == "clf__estimator__max_depth",
-        f"{model}_value"].str.split(",")[1]
-    keys = "clf__estimator__learning_rate", "clf__estimator__max_depth"
-    params = [dict(zip(keys, combo)) for combo in itertools.product(
-        clf__estimator__learning_rate, clf__estimator__max_depth)]
     return params
 
 
