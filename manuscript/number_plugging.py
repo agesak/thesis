@@ -14,7 +14,7 @@ def get_country_names(df):
             df: df with location_id column with some subnational level rows
     Returns:
         df - most_detailed_id column with most-detailed location id for a given GBD location
-           - location_column with only country-level location names for all location ids
+           - location_name column with only country-level location names for all location ids
     """
     df = df.merge(
         LOCS[["location_id", "parent_id", "level"]],
@@ -38,7 +38,7 @@ def get_country_names(df):
 # from the United States, XX location-years of data from South Africa,
 # XX location-years of data from Columbia,
 # and XX location-years of data from Italy.
-df = read_in_data(int_cause="x59", code_system_id=None)
+df = read_in_data(int_cause="x59", code_system_id=None, inj_garbage=True)
 df = get_country_names(df)
 ly_df = df.groupby("location_name", as_index=False).agg(
     {"most_detailed_id": "nunique", "year_id": "nunique"})
@@ -73,6 +73,8 @@ df = get_country_names(df)
 df.groupby("location_name", as_index=False)["deaths"].sum(
 ).to_csv("/home/j/temp/agesak/thesis/tables/total_records.csv", index=False)
 
+# rerun this with inj_garbage as true!!
+
 y34 = read_in_data(int_cause="y34", code_system_id=None)
 injuries = y34.deaths.sum()
 # percent injuries - use y34 because includes intentional injuries
@@ -84,6 +86,10 @@ y34 = get_country_names(y34)
 y34.groupby("location_name", as_index=False)["deaths"].sum().to_csv(
     "/home/j/temp/agesak/thesis/tables/injuries_records.csv", index=False)
 # percent x59
+
+# rerun with inj_garbage as true!!
+
+
 x59 = read_in_data(int_cause="x59", code_system_id=None)
 (len(x59.query("x59==1")) / injuries) * 100
 
@@ -96,7 +102,11 @@ len(injuries.query("most_detailed==1"))
 
 
 # figure 3
-df = read_in_data(int_cause="x59", code_system_id=None)
-df = get_country_names(df)
-gc = df.query("cause_id==743")
-gc = gc.groupby(["location_name", "x59"], as_index=False)["deaths"].sum()
+for int_cause in ["x59", "y34"]:
+    # read in just rows with injuries garbage
+    df = read_in_data(int_cause=int_cause, code_system_id=None, inj_garbage=True)
+    df = get_country_names(df)
+    df = df.groupby(["location_name", f"cause_{int_cause}"], as_index=False)["deaths"].sum()
+    df.groupby("location_name")["deaths"].transform(lambda x: x/x.sum(axis=0))
+    # df["percent"] = df['deaths'].transform(lambda x: x / x.sum())
+    df.to_csv(f"/home/j/temp/agesak/thesis/figures/percent_{int_cause}.csv", index=False)

@@ -28,12 +28,19 @@ class ModelLauncher():
                   "bernoulli_nb": 1,
                   "complement_nb": 1,
                   "svm": 2,
-                  "gbt": 3}
+                  "gbt": 4}
     memory_dict = {"rf": 65,
                    "multi_nb": 8,
                    "bernoulli_nb": 6,
                    "complement_nb": 6,
                    "gbt": 30}
+    runtime_dict = {"rf": "48:00:00",
+                    "multi_nb": "1:00:00",
+                    "complement_nb": "1:00:00",
+                    "bernoulli_nb": "1:00:00",
+                    "gbt": "172:00:00",
+                    "svm": "24:00:00"
+                    }
     num_datasets = 100
     # df_size = 250000
     df_size = 1000000
@@ -136,7 +143,7 @@ class ModelLauncher():
         submit_mcod(jobname, "python", worker, cores=4,
                     memory=f"{ModelLauncher.memory_dict[short_name]}G",
                     params=params, verbose=True, logging=True,
-                    jdrive=False, queue="i.q", runtime="48:00:00")
+                    jdrive=False, queue="i.q", runtime=f"{ModelLauncher.runtime_dict[short_name]}")
 
     def _launch_models(self, params, model_name, short_name):
         """helper function to launch training models"""
@@ -220,11 +227,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--int_cause", help="either x59 or y34", required=True,
         choices=["x59", "y34"])
+    # not required
     parser.add_argument(
         "--model_type", help="short-hand name for ML classifier",
-        required=True,
         choices=list(ModelLauncher.model_dict.keys()) + ["all"], nargs="*")
-    # not required
     parser.add_argument(
         "--code_system_id", help="1 is ICD 10, 6 is ICD9",
         choices=[1, 6], type=int)

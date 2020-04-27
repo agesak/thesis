@@ -1,8 +1,9 @@
 import os
 from cod_prep.utils import print_log_message
+from cod_prep.claude.claude_io import makedirs_safely
 
 
-def get_limited_use_directory(source, int_cause):
+def get_limited_use_directory(source, int_cause, inj_garbage):
     """Different input directories for limited use vs. non-limited use data."""
     limited_use = "/ihme/limited_use"
     thesis = f"mcod/{int_cause}"
@@ -15,7 +16,11 @@ def get_limited_use_directory(source, int_cause):
     }
     if source in limited_use_paths.keys():
         limited_dir = os.path.join(limited_use, limited_use_paths[source], thesis)
+        if inj_garbage:
+            limited_dir = os.path.join(limited_dir, "inj_garbage")
     else:
         print_log_message(f"not using limited use directory for {source}")
+
+    makedirs_safely(limited_dir)
 
     return limited_dir

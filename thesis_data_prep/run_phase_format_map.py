@@ -1,14 +1,17 @@
 """Run formatting and mapping steps for mcod data."""
 import sys
 import numpy as np
+import pandas as pd
 from importlib import import_module
 from thesis_data_prep.mcod_mapping import MCoDMapper
 from thesis_data_prep.launch_mcod_mapping import MCauseLauncher
 from thesis_utils.directories import get_limited_use_directory
+from thesis_utils.misc import str2bool
 from mcod_prep.utils.logging import ymd_timestamp
 from mcod_prep.utils.causes import get_most_detailed_inj_causes
-from cod_prep.utils import print_log_message
+from cod_prep.utils import print_log_message, clean_icd_codes
 from cod_prep.claude.claude_io import write_phase_output
+from cod_prep.downloaders import engine_room
 
 ID_COLS = ['year_id', 'sex_id', 'age_group_id', 'location_id',
            'cause_id', 'code_id', 'nid', 'extract_type_id']
@@ -27,7 +30,8 @@ def get_formatting_method(source, data_type_id, year, drop_p2):
             args += [True]
     try:
         formatting_method = getattr(
-            import_module(f"mcod_prep.datasets.{clean_source}"), f"{clean_source}"
+            import_module(f"mcod_prep.datasets.{clean_source}"),
+            f"{clean_source}"
         )
     except AttributeError:
         print(f"No formatting method found! Check module & main function are named clean_{source}")
@@ -74,7 +78,7 @@ def drop_non_mcause(df, explore):
 
 
 def run_pipeline(year, source, int_cause, code_system_id, code_map_version_id,
-                 cause_set_version_id, nid, extract_type_id, data_type_id,
+                 cause_set_version_id, nid, extract_type_id, data_type_id, inj_garbage,
                  diagnostic_acauses=None, explore=False, drop_p2=False):
     """Clean, map, and prep data for next steps."""
 
@@ -100,45 +104,77 @@ def run_pipeline(year, source, int_cause, code_system_id, code_map_version_id,
                 df.loc[~(df[f"{col}"].str.match("(^[A-Z][0-9]{2,4}$)|(^0000$)")),
                        col] = df[f"{col}_code_original"]
 
-    # subset to rows where UCOD is injuries or any death is X59/y34
-    df = df[[x for x in list(df) if not ((x.endswith(f"{int_cause}")) | (
-        x.endswith("code_original")))] + [
-        f"{int_cause}", f"pII_{int_cause}", f"cause_{int_cause}"]]
-    causes = get_most_detailed_inj_causes(int_cause, cause_set_id=4)
-    df = df.loc[(df.cause_id.isin(causes)) | ((df[f"{int_cause}"] == 1) & df.cause_id == 743)]
+    if inj_garbage:
+        print_log_message("subsetting to only rows with UCOD as injuries garbage codes")
+        package_list = pd.read_excel("/homes/agesak/thesis/maps/package_list.xlsx", sheet_name="mohsen_vetted")
 
-    # some edits to cause_cols for BoW
-    multiple_cause_cols = [x for x in list(df) if "cause" in x]
-    multiple_cause_cols.remove("cause_id")
-    df[multiple_cause_cols] = df[multiple_cause_cols].replace(
-        "0000", np.NaN).replace("other", np.NaN)
-    df["cause_info"] = df[[x for x in list(df) if "multiple_cause" in x]].fillna(
-        "").astype(str).apply(lambda x: " ".join(x), axis=1)
+        # get a list of all injuries garbage package names
+        inj_packages = package_list.package_name.unique().tolist()
+
+        # get the garbage codes associated with these garbage packages
+        garbage_df = engine_room.get_package_list(code_system_or_id=code_system_id, include_garbage_codes=True)
+
+        # subset df to only rows with injuries garbage as UCOD
+        df = apply_garbage_map(df, garbage_df, inj_packages)
+    else:
+        # subset to rows where UCOD is injuries or any death is X59/y34
+        df = df[[x for x in list(df) if not ((x.endswith(f"{int_cause}")) | (
+            x.endswith("code_original")))] + [
+            f"{int_cause}", f"pII_{int_cause}", f"cause_{int_cause}"]]
+
+        causes = get_most_detailed_inj_causes(int_cause, cause_set_id=4)
+        df = df.loc[(df.cause_id.isin(causes)) | ((df[f"{int_cause}"] == 1) & (df.cause_id == 743))]
+
+        # some edits to cause_cols for BoW
+        multiple_cause_cols = [x for x in list(df) if "cause" in x]
+        multiple_cause_cols.remove("cause_id")
+        df[multiple_cause_cols] = df[multiple_cause_cols].replace(
+            "0000", np.NaN).replace("other", np.NaN)
+        df["cause_info"] = df[[x for x in list(df) if "multiple_cause" in x]].fillna(
+            "").astype(str).apply(lambda x: " ".join(x), axis=1)
 
     return df
 
+def apply_garbage_map(df, g_df,inj_packages):
 
-def write_outputs(df, int_cause, source, nid, extract_type_id):
+    g_df["garbage_code"] = clean_icd_codes(g_df["garbage_code"], remove_decimal=True)
+    g_df = g_df.loc[g_df.package_name.isin(inj_packages)]
+    garbage_codes = g_df.garbage_code.unique().tolist()
+    df["keep"] = 0
+    for n in reversed(range(2, 7)):
+        df["keep"] = np.where(df.cause.isin([x[0:n] for x in garbage_codes]), 1, df["keep"])
+
+    df = df.query("keep==1")
+
+    return df
+
+def write_outputs(df, int_cause, source, nid, extract_type_id, inj_garbage):
     """
     write_phase_output - for nonlimited use data
     write to limited use folder - for limited use data"""
 
     if source in MCauseLauncher.limited_sources:
-        limited_dir = get_limited_use_directory(source, int_cause)
+        limited_dir = get_limited_use_directory(source, int_cause, inj_garbage)
         print_log_message(f"writing {source} to limited use dir")
+        print_log_message(limited_dir)
         df.to_csv(f"{limited_dir}/{nid}_{extract_type_id}_format_map.csv", index=False)
     else:
+        if inj_garbage:
+            print_log_message("writing formatted df with only injuries garbage codes as UCOD")
+            subdirs = f"{int_cause}/thesis/inj_garbage"
+        else:
+            subdirs = f"{int_cause}/thesis"
         print_log_message(f"Writing nid {nid}, extract_type_id {extract_type_id}")
         write_phase_output(df, "format_map", nid, extract_type_id, ymd_timestamp(),
-                           sub_dirs=f"{int_cause}/thesis")
+                           sub_dirs=subdirs)
 
 
 def main(year, source, int_cause, code_system_id, code_map_version_id,
-         cause_set_version_id, nid, extract_type_id, data_type_id):
+         cause_set_version_id, nid, extract_type_id, data_type_id, inj_garbage=False):
     """Run pipeline."""
     df = run_pipeline(year, source, int_cause, code_system_id, code_map_version_id,
-                      cause_set_version_id, nid, extract_type_id, data_type_id)
-    write_outputs(df, int_cause, source, nid, extract_type_id)
+                      cause_set_version_id, nid, extract_type_id, data_type_id, inj_garbage)
+    write_outputs(df, int_cause, source, nid, extract_type_id, inj_garbage)
 
 
 if __name__ == '__main__':
@@ -151,6 +187,18 @@ if __name__ == '__main__':
     nid = int(sys.argv[7])
     extract_type_id = int(sys.argv[8])
     data_type_id = int(sys.argv[9])
+    inj_garbage = str2bool(sys.argv[10])
+    print(year)
+    print(source)
+    print(int_cause)
+    print(code_system_id)
+    print(code_map_version_id)
+    print(cause_set_version_id)
+    print(nid)
+    print(extract_type_id)
+    print(data_type_id)
+    print(inj_garbage)
+    print(type(inj_garbage))
 
     main(year, source, int_cause, code_system_id, code_map_version_id,
-         cause_set_version_id, nid, extract_type_id, data_type_id)
+         cause_set_version_id, nid, extract_type_id, data_type_id, inj_garbage)

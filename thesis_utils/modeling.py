@@ -15,17 +15,22 @@ from thesis_data_prep.launch_mcod_mapping import MCauseLauncher
 BLOCK_RERUN = {"block_rerun": False, "force_rerun": True}
 
 
-def read_in_data(int_cause, code_system_id=None):
+def read_in_data(int_cause, inj_garbage=False, code_system_id=None):
     """Read in and append all MCoD data"""
     # col, zaf, and ita dont have icd 9
     print_log_message("reading in not limited use data")
+    if inj_garbage:
+        print_log_message("writing formatted df with only nonX59/Y34 garbage codes as UCOD")
+        subdirs = f"{int_cause}/thesis/inj_garbage"
+    else:
+        subdirs = f"{int_cause}/thesis"
     # it"s not good the sources are hard-coded
     if code_system_id != 6:
         # col, zaf, and ita dont have icd 9
         udf = get_mcause_data(
             phase="format_map",
             source=["COL_DANE", "ZAF_STATSSA", "ITA_ISTAT"],
-            sub_dirs=f"{int_cause}/thesis",
+            sub_dirs=subdirs,
             data_type_id=9, code_system_id=code_system_id,
             assert_all_available=True,
             verbose=True, **BLOCK_RERUN)
@@ -41,7 +46,7 @@ def read_in_data(int_cause, code_system_id=None):
 
     dfs = []
     for source in MCauseLauncher.limited_sources:
-        limited_dir = get_limited_use_directory(source, int_cause)
+        limited_dir = get_limited_use_directory(source, int_cause, inj_garbage)
         csvfiles = glob.glob(os.path.join(limited_dir, "*.csv"))
         for file in csvfiles:
             if any(meta in file for meta in limited_metadata):
@@ -58,8 +63,9 @@ def create_train_test(df, test, int_cause):
     randomly sample from all locations so models don't take forever to run"""
 
     locs = get_location_metadata(gbd_round_id=6, location_set_id=35)
-
-    df = df.query("cause_id!=743")
+    
+    garbage_df = df.query(f"cause_id==743 & {int_cause}==1")
+    df = df.query(f"cause_id!=743 & {int_cause}!=1")
 
     if test:
         print_log_message(
@@ -85,14 +91,7 @@ def create_train_test(df, test, int_cause):
     # split train 75%, test 25%
     train_df, test_df = train_test_split(df, test_size=0.25)
 
-    # will only train/test where we know UCoD
-    # see how final results change when subsetting to where x59==0 -
-    # so basically filtering out rows where
-    # x59 in chain but ucod is gbd injuries cause
-    # train_df = train_df[["cause_id", "cause_info",
-    #                      f"{int_cause}"]].query("cause_id!=743")
-
-    return train_df, test_df, df.query(f"cause_id==743 & {int_cause}==1")
+    return train_df, test_df, garbage_df
 
 
 def random_forest_params(model):
@@ -101,9 +100,6 @@ def random_forest_params(model):
     clf__estimator__n_estimators = df.loc[df[
         f"{model}"] == "clf__estimator__n_estimators",
         f"{model}_value"].str.split(",")[0]
-    # clf__estimator__max_features = df.loc[df[
-    #     f"{model}"] == "clf__estimator__max_features",
-    #     f"{model}_value"].tolist()
     clf__estimator__max_depth = df.loc[df[
         f"{model}"] == "clf__estimator__max_depth",
         f"{model}_value"].str.split(",")[1]
@@ -160,9 +156,12 @@ def gbt_params(model):
     clf__estimator__max_depth = df.loc[df[
         f"{model}"] == "clf__estimator__max_depth",
         f"{model}_value"].str.split(",")[2]
-    keys = "clf__estimator__n_estimators", "clf__estimator__learning_rate", "clf__estimator__max_depth"
+    clf__estimator__max_features = df.loc[df[
+        f"{model}"] == "clf__estimator__max_features",
+        f"{model}_value"].str.split(",")[3]
+    keys = "clf__estimator__n_estimators", "clf__estimator__learning_rate", "clf__estimator__max_depth", "clf__estimator__max_features"
     params = [dict(zip(keys, combo)) for combo in itertools.product(
-        clf__estimator__n_estimators, clf__estimator__learning_rate, clf__estimator__max_depth)]
+        clf__estimator__n_estimators, clf__estimator__learning_rate, clf__estimator__max_depth, clf__estimator__max_features)]
     return params
 
 
