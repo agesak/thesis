@@ -10,6 +10,7 @@ from thesis_utils.modeling import (read_in_data, create_train_test,
                                    random_forest_params,
                                    naive_bayes_params,
                                    svm_params, gbt_params,
+                                   xgb_params,
                                    format_argparse_params)
 from thesis_utils.model_evaluation import (get_best_fit,
                                            format_best_fit_params)
@@ -22,23 +23,28 @@ class ModelLauncher():
                   "bernoulli_nb": "BernoulliNB",
                   "complement_nb": "ComplementNB",
                   "svm": "SVC",
-                  "gbt": "GradientBoostingClassifier"}
+                  "gbt": "GradientBoostingClassifier",
+                  "xgb": "XGBClassifier"}
     param_dict = {"rf": 4,
                   "multi_nb": 1,
                   "bernoulli_nb": 1,
                   "complement_nb": 1,
-                  "svm": 2,
-                  "gbt": 4}
+                  "svm": 3,
+                  "gbt": 4,
+                  "xgb":1}
     memory_dict = {"rf": 65,
                    "multi_nb": 8,
                    "bernoulli_nb": 6,
                    "complement_nb": 6,
-                   "gbt": 30}
+                   "gbt": 30,
+                   "xgb":30, 
+                   "svm":30}
     runtime_dict = {"rf": "48:00:00",
                     "multi_nb": "1:00:00",
                     "complement_nb": "1:00:00",
                     "bernoulli_nb": "1:00:00",
-                    "gbt": "172:00:00",
+                    "gbt": "96:00:00",
+                    "xgb":"24:00:00",
                     "svm": "24:00:00"
                     }
     num_datasets = 100
@@ -143,7 +149,7 @@ class ModelLauncher():
         submit_mcod(jobname, "python", worker, cores=4,
                     memory=f"{ModelLauncher.memory_dict[short_name]}G",
                     params=params, verbose=True, logging=True,
-                    jdrive=False, queue="i.q", runtime=f"{ModelLauncher.runtime_dict[short_name]}")
+                    jdrive=False, queue="long.q", runtime=f"{ModelLauncher.runtime_dict[short_name]}")
 
     def _launch_models(self, params, model_name, short_name):
         """helper function to launch training models"""
@@ -180,6 +186,8 @@ class ModelLauncher():
                     params = svm_params(model_name)
                 elif model_name == "GradientBoostingClassifier":
                     params = gbt_params(model_name)
+                elif model_name == "XGBClassifier":
+                    params = xgb_params(model_name)
                 print_log_message(
                     f"{len(params)} sets of model parameters")
                 self._launch_models(params, model_name, short_name)

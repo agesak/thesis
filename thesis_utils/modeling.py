@@ -14,7 +14,6 @@ from thesis_data_prep.launch_mcod_mapping import MCauseLauncher
 
 BLOCK_RERUN = {"block_rerun": False, "force_rerun": True}
 
-
 def read_in_data(int_cause, inj_garbage=False, code_system_id=None):
     """Read in and append all MCoD data"""
     # col, zaf, and ita dont have icd 9
@@ -63,7 +62,7 @@ def create_train_test(df, test, int_cause):
     randomly sample from all locations so models don't take forever to run"""
 
     locs = get_location_metadata(gbd_round_id=6, location_set_id=35)
-    
+
     garbage_df = df.query(f"cause_id==743 & {int_cause}==1")
     df = df.query(f"cause_id!=743 & {int_cause}!=1")
 
@@ -138,14 +137,17 @@ def svm_params(model):
     clf__estimator__kernel = df.loc[df[
         f"{model}"] == "clf__estimator__kernel",
         f"{model}_value"].str.split(",")[1]
-    keys = "clf__estimator__C", "clf__estimator__kernel"
+    clf__estimator__decision_function_shape = df.loc[df[
+        f"{model}"] == "clf__estimator__decision_function_shape",
+        f"{model}_value"].str.split(",")[2]
+    keys = "clf__estimator__C", "clf__estimator__kernel", "clf__estimator__decision_function_shape"
     params = [dict(zip(keys, combo)) for combo in itertools.product(
-        clf__estimator__C, clf__estimator__kernel)]
+        clf__estimator__C, clf__estimator__kernel, clf__estimator__decision_function_shape)]
     return params
 
 
 def gbt_params(model):
-    assert model == "GradientBoostingClassifier"
+    assert model == "GradientBoostingClassifier", "wrong model type"
     df = pd.read_csv("/homes/agesak/thesis/maps/parameters.csv")
     clf__estimator__n_estimators = df.loc[df[
         f"{model}"] == "clf__estimator__n_estimators",
@@ -162,6 +164,17 @@ def gbt_params(model):
     keys = "clf__estimator__n_estimators", "clf__estimator__learning_rate", "clf__estimator__max_depth", "clf__estimator__max_features"
     params = [dict(zip(keys, combo)) for combo in itertools.product(
         clf__estimator__n_estimators, clf__estimator__learning_rate, clf__estimator__max_depth, clf__estimator__max_features)]
+    return params
+
+def xgb_params(model):
+    assert model == "XGBClassifier", "wrong model type"
+    df = pd.read_csv("/homes/agesak/thesis/maps/parameters.csv")
+    clf__estimator__eta = df.loc[df[
+        f"{model}"] == "clf__estimator__eta",
+        f"{model}_value"].str.split(",")[0]
+    keys = "clf__estimator__eta", "clf__estimator__eta", 
+    params = [dict(zip(keys, combo)) for combo in itertools.product(
+        clf__estimator__eta)]
     return params
 
 

@@ -12,7 +12,7 @@ def main(model_param, model_name, write_dir, train_dir, int_cause, short_name):
     print_log_message("formatting parameters")
     model_params = format_gridsearch_params(model_name, model_param)
 
-    print_log_message("runninf pipeline")
+    print_log_message("running pipeline")
     results, grid_results = run_pipeline(model_name, model_df, model_params,
                                          write_dir, int_cause)
     results.to_csv(f"{write_dir}/summary_stats.csv", index=False)
