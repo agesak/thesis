@@ -1,3 +1,5 @@
+# number plugging manuscript
+
 import pandas as pd
 import numpy as np
 from db_queries import get_location_metadata, get_cause_metadata
@@ -57,9 +59,18 @@ df.groupby("location_name", as_index=False).agg(
 # number of injuries related deaths - need total # deaths for each source
 df.groupby("location_name", as_index=False).agg({"deaths": "sum"})
 
-# Of the XX million deaths available in these records,
-# injuries deaths make up XX%, with XX% of these injuries
-# deaths coded as X59 and XX% coded as Y34, respectively.
+# Deaths where an injuries-related ICD code was the
+# underlying cause of death were mapped to one of XX
+# most-detailed GBD injuries causes.
+causes = get_cause_metadata(gbd_round_id=6, cause_set_id=3)
+injuries = causes.loc[causes.acause.str.contains("inj")]
+len(injuries.query("most_detailed==1"))
+
+# Sentence: Of the XX million deaths available in these records,
+# XX% were injuries related, with XX% of these injuries deaths being garbage coded.
+# get just injuries related deaths.
+
+# Part 1: Of the XX million deaths available in these records,
 # could pick any int cause here
 df = get_mcause_data(
     phase='format_map', sub_dirs="sepsis",
@@ -73,37 +84,68 @@ df = get_country_names(df)
 df.groupby("location_name", as_index=False)["deaths"].sum(
 ).to_csv("/home/j/temp/agesak/thesis/tables/total_records.csv", index=False)
 
-# rerun this with inj_garbage as true!!
-y34 = read_in_data(int_cause="y34", code_system_id=None)
-injuries = y34.deaths.sum()
-# percent injuries - use y34 because includes intentional injuries
-(injuries / total_deaths) * 100
-# percent y34
-(len(y34.query("y34==1")) / injuries) * 100
-# number injuries records by country
+# Part 2: XX% were injuries related, with XX% of these injuries deaths being garbage coded.
+# use y34 because includes intentional injuries
+# first get number of gbd injuries coded deaths
+y34 = read_in_data(int_cause="y34", code_system_id=None, inj_garbage=False)
+y34 = y34[["location_id", "cause_id", "cause_y34", "y34", "deaths"]]
 y34 = get_country_names(y34)
+# remove y34 coded deaths
+y34 = y34.loc[~((y34.cause_id == 743) & (y34["y34"] == 1))]
 y34.groupby("location_name", as_index=False)["deaths"].sum().to_csv(
-    "/home/j/temp/agesak/thesis/tables/injuries_records.csv", index=False)
+    "/home/j/temp/agesak/thesis/tables/gbd_injuries_records.csv", index=False)
 
-# percent x59
-# rerun with inj_garbage as true!!
-x59 = read_in_data(int_cause="x59", code_system_id=None)
-(len(x59.query("x59==1")) / injuries) * 100
+# then get number of injuries garbage coded deaths - separated by whether or not y34 related (also can use for figure 2)
+df = read_in_data(int_cause="y34", code_system_id=None, inj_garbage=True)
+df = df[["location_id", "cause_id", "cause_y34", "y34", "deaths"]]
+df = get_country_names(df)
+df = df.groupby(["location_name", f"cause_y34"],
+                as_index=False)["deaths"].sum()
+df["percent_y34"] = df.groupby("location_name")[
+    "deaths"].transform(lambda x: x / x.sum(axis=0))
+df.to_csv(f"/home/j/temp/agesak/thesis/tables/percent_y34.csv", index=False)
 
-# Deaths where an injuries-related ICD code was the
-# underlying cause of death were mapped to one of XX
-# most-detailed GBD injuries causes.
-causes = get_cause_metadata(gbd_round_id=6, cause_set_id=3)
-injuries = causes.loc[causes.acause.str.contains("inj")]
-len(injuries.query("most_detailed==1"))
+# XX% were injuries related
+df = pd.read_csv("/home/j/temp/agesak/thesis/tables/total_records.csv")
+gbd = pd.read_csv("/home/j/temp/agesak/thesis/tables/gbd_injuries_records.csv")
+garbage = pd.read_csv("/home/j/temp/agesak/thesis/tables/percent_y34.csv")
+inj_related = ((gbd.deaths.sum() + garbage.deaths.sum()) /
+               df.deaths.sum()) * 100
 
+# with XX% of these injuries deaths being garbage coded.
+percent_garbage = (garbage.deaths.sum() / gbd.deaths.sum()) * 100
 
-# figure 3
-for int_cause in ["x59", "y34"]:
-    # read in just rows with injuries garbage
-    df = read_in_data(int_cause=int_cause, code_system_id=None, inj_garbage=True)
-    df = get_country_names(df)
-    df = df.groupby(["location_name", f"cause_{int_cause}"], as_index=False)["deaths"].sum()
-    df.groupby("location_name")["deaths"].transform(lambda x: x/x.sum(axis=0))
-    # df["percent"] = df['deaths'].transform(lambda x: x / x.sum())
-    df.to_csv(f"/home/j/temp/agesak/thesis/figures/percent_{int_cause}.csv", index=False)
+# Part 3: Of the injuries garbage coded deaths XX% were X59
+# and XX% were Y34, though this fraction varied greatly by country.
+# now get x59 numbers (also can use for figure 2)
+df = read_in_data(int_cause="x59", code_system_id=None, inj_garbage=True)
+df = df[["location_id", "cause_id", "cause_x59", "x59", "deaths"]]
+df = get_country_names(df)
+df = df.groupby(["location_name", f"cause_x59"],
+                as_index=False)["deaths"].sum()
+df["percent_x59"] = df.groupby("location_name")[
+    "deaths"].transform(lambda x: x / x.sum(axis=0))
+df.to_csv(f"/home/j/temp/agesak/thesis/tables/percent_x59.csv", index=False)
+
+# XX% were X59
+x59 = pd.read_csv("/home/j/temp/agesak/thesis/tables/percent_x59.csv")
+x59 = x59.groupby("cause_x59", as_index=False)["deaths"].sum()
+x59["percent"] = x59["deaths"] / x59["deaths"].sum()
+x59.iloc[1, 2]
+
+# and XX% were Y34
+y34 = pd.read_csv("/home/j/temp/agesak/thesis/tables/percent_y34.csv")
+y34 = y34.groupby("cause_y34", as_index=False)["deaths"].sum()
+y34["percent"] = y34["deaths"] / y34["deaths"].sum()
+y34.iloc[0, 2]
+
+# Table 1: number of injuries records - again use y34 because includes intentional injuries
+gbd = pd.read_csv("/home/j/temp/agesak/thesis/tables/gbd_injuries_records.csv")
+garbage = pd.read_csv("/home/j/temp/agesak/thesis/tables/percent_y34.csv")
+gbd.rename(columns={"deaths": "gbd_injuries_deaths"}, inplace=True)
+garbage = garbage.pivot(index="location_name", columns="cause_y34", values="deaths").reset_index().rename(
+    columns={"external causes udi,type unspecified-y34": "y34_deaths", "other": "other_injuries_garbage_deaths"})
+df = gbd.merge(garbage, on="location_name")
+df["total_injuries_deaths"] = df[[
+    x for x in list(df) if "deaths" in x]].sum(axis=1)
+df.to_csv("/home/j/temp/agesak/thesis/tables/total_injuries_records.csv", index=False)
