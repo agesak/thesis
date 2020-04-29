@@ -69,7 +69,7 @@ def get_best_fit(model_dir, short_name):
             dfs.append(df)
     df = pd.concat(dfs, sort=True, ignore_index=True)
 
-    best_fit = df.sort_values(by="mean_test_cccsfma",
+    best_fit = df.sort_values(by="mean_test_concordance",
                               ascending=False).reset_index(drop=True).iloc[0:1]
     return best_fit
 

@@ -31,21 +31,21 @@ class ModelLauncher():
                   "complement_nb": 1,
                   "svm": 3,
                   "gbt": 4,
-                  "xgb":1}
+                  "xgb": 4}
     memory_dict = {"rf": 65,
                    "multi_nb": 8,
                    "bernoulli_nb": 6,
                    "complement_nb": 6,
                    "gbt": 30,
-                   "xgb":30, 
-                   "svm":30}
-    runtime_dict = {"rf": "48:00:00",
+                   "xgb": 30,
+                   "svm": 40}
+    runtime_dict = {"rf": "52:00:00",
                     "multi_nb": "1:00:00",
                     "complement_nb": "1:00:00",
                     "bernoulli_nb": "1:00:00",
                     "gbt": "96:00:00",
-                    "xgb":"24:00:00",
-                    "svm": "24:00:00"
+                    "xgb": "24:00:00",
+                    "svm": "96:00:00"
                     }
     num_datasets = 100
     # df_size = 250000

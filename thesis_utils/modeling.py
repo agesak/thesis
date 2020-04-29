@@ -13,6 +13,7 @@ from thesis_utils.directories import get_limited_use_directory
 from thesis_data_prep.launch_mcod_mapping import MCauseLauncher
 
 BLOCK_RERUN = {"block_rerun": False, "force_rerun": True}
+DEM_COLS = ["cause_id", "location_id", "sex_id", "year_id", "age_group_id"]
 
 def read_in_data(int_cause, inj_garbage=False, code_system_id=None):
     """Read in and append all MCoD data"""
@@ -66,6 +67,8 @@ def create_train_test(df, test, int_cause):
     garbage_df = df.query(f"cause_id==743 & {int_cause}==1")
     df = df.query(f"cause_id!=743 & {int_cause}!=1")
 
+    keep_cols = DEM_COLS + ["cause_info", f"{int_cause}"] + [x for x in list(df) if "multiple_cause" in x]
+
     if test:
         print_log_message(
             "THIS IS A TEST.. only using 5000 rows from each loc")
@@ -90,7 +93,7 @@ def create_train_test(df, test, int_cause):
     # split train 75%, test 25%
     train_df, test_df = train_test_split(df, test_size=0.25)
 
-    return train_df, test_df, garbage_df
+    return train_df[DEM_COLS + ["cause_info", f"{int_cause}"]], test_df[keep_cols], garbage_df[keep_cols]
 
 
 def random_forest_params(model):
@@ -172,9 +175,18 @@ def xgb_params(model):
     clf__estimator__eta = df.loc[df[
         f"{model}"] == "clf__estimator__eta",
         f"{model}_value"].str.split(",")[0]
-    keys = "clf__estimator__eta", "clf__estimator__eta", 
+    clf__estimator__gamma = df.loc[df[
+        f"{model}"] == "clf__estimator__gamma",
+        f"{model}_value"].str.split(",")[1]
+    clf__estimator__max_depth = df.loc[df[
+        f"{model}"] == "clf__estimator__max_depth",
+        f"{model}_value"].str.split(",")[2]
+    clf__estimator__subsample = df.loc[df[
+        f"{model}"] == "clf__estimator__subsample",
+        f"{model}_value"].str.split(",")[3]
+    keys = "clf__estimator__eta", "clf__estimator__gamma", "clf__estimator__max_depth", "clf__estimator__subsample"
     params = [dict(zip(keys, combo)) for combo in itertools.product(
-        clf__estimator__eta)]
+        clf__estimator__eta, clf__estimator__gamma, clf__estimator__max_depth, clf__estimator__subsample)]
     return params
 
 
