@@ -47,7 +47,7 @@ def main(model_dir, write_dir, dataset_num, df_size):
 
     # multiply it by scalar so equals sum of uninformative alpha distribution (all 1's)
     dts = dts * len(cause_distribution)
-    assert dts.sum() == len(cause_distribution), "the sum of the dirichlet distribution must equal that of the uninformative distribution"
+    assert int(dts.sum()) == len(cause_distribution), "the sum of the dirichlet distribution must equal that of the uninformative distribution"
     
     # dictionary of cause ids to each dirichlet distribution
     dirichlet_dict = dict(zip(cause_distribution.keys(), dts[0]))

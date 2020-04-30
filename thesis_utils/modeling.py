@@ -143,9 +143,12 @@ def svm_params(model):
     clf__estimator__decision_function_shape = df.loc[df[
         f"{model}"] == "clf__estimator__decision_function_shape",
         f"{model}_value"].str.split(",")[2]
-    keys = "clf__estimator__C", "clf__estimator__kernel", "clf__estimator__decision_function_shape"
+    clf__estimator__gamma = df.loc[df[
+        f"{model}"] == "clf__estimator__gamma",
+        f"{model}_value"].str.split(",")[3]
+    keys = "clf__estimator__C", "clf__estimator__kernel", "clf__estimator__decision_function_shape", "clf__estimator__gamma"
     params = [dict(zip(keys, combo)) for combo in itertools.product(
-        clf__estimator__C, clf__estimator__kernel, clf__estimator__decision_function_shape)]
+        clf__estimator__C, clf__estimator__kernel, clf__estimator__decision_function_shape, clf__estimator__gamma)]
     return params
 
 

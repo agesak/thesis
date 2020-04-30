@@ -29,7 +29,7 @@ class ModelLauncher():
                   "multi_nb": 1,
                   "bernoulli_nb": 1,
                   "complement_nb": 1,
-                  "svm": 3,
+                  "svm": 4,
                   "gbt": 4,
                   "xgb": 4}
     memory_dict = {"rf": 65,
@@ -37,19 +37,19 @@ class ModelLauncher():
                    "bernoulli_nb": 6,
                    "complement_nb": 6,
                    "gbt": 30,
-                   "xgb": 30,
+                   "xgb": 20,
                    "svm": 40}
     runtime_dict = {"rf": "52:00:00",
                     "multi_nb": "1:00:00",
                     "complement_nb": "1:00:00",
                     "bernoulli_nb": "1:00:00",
                     "gbt": "96:00:00",
-                    "xgb": "24:00:00",
+                    "xgb": "14:00:00",
                     "svm": "96:00:00"
                     }
-    num_datasets = 100
-    # df_size = 250000
-    df_size = 1000000
+    df_size_dict = {"x59":1056994,
+                    "y34":1708834}
+    num_datasets = 5
 
     def __init__(self, run_filters):
         self.run_filters = run_filters
@@ -99,12 +99,12 @@ class ModelLauncher():
 
     def launch_create_testing_datasets(self, write_dir, data_dir, dataset_num, best_model_params):
 
-        params = [data_dir, write_dir, dataset_num, ModelLauncher.df_size]
+        params = [data_dir, write_dir, dataset_num, ModelLauncher.df_size_dict[f"{self.int_cause}"]]
         jobname = f"{self.int_cause}_dataset_{dataset_num}_{best_model_params}"
         worker = f"/homes/agesak/thesis/analysis/create_test_datasets.py"
         submit_mcod(jobname, "python", worker, cores=2, memory="12G",
                     params=params, verbose=True, logging=True,
-                    jdrive=False, queue="i.q")
+                    jdrive=False, queue="long.q")
 
     def launch_int_cause_predictions(self, write_dir, short_name):
         data_dir = f"{self.model_dir}/{self.description}"
