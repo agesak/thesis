@@ -15,8 +15,9 @@ def create_test_datatsets(test_df, dirichlet_dict, write_dir, dataset_num,
     df = pd.DataFrame({"cause_id": [np.NaN] * df_size})
     dfs = []
     for cause in dirichlet_dict.keys():
+        print_log_message(cause)
         # proportion from dirichlet dictates how many rows are assigned to a given cause
-        subdf = df.sample(frac=dirichlet_dict[cause], replace=False).assign(
+        subdf = df.sample(frac=dirichlet_dict[cause], replace=True).assign(
             cause_id=cause)
         print_log_message(f"generating multiple cause rows for {cause}")
         mcause_df = generate_multiple_cause_rows(subdf, test_df, cause)
@@ -44,14 +45,19 @@ def main(model_dir, write_dir, dataset_num, df_size):
     # 500 dirichlet distributions based on test data cause distribution
     dts = np.random.dirichlet(alpha=list(
         cause_distribution.values()), size=1)
+    print_log_message(dts)
 
     # multiply it by scalar so equals sum of uninformative alpha distribution (all 1's)
     dts = dts * len(cause_distribution)
+    print_log_message(dts)
+    print_log_message(int(dts.sum()))
     assert int(dts.sum()) == len(cause_distribution), "the sum of the dirichlet distribution must equal that of the uninformative distribution"
     
     # dictionary of cause ids to each dirichlet distribution
     dirichlet_dict = dict(zip(cause_distribution.keys(), dts[0]))
+    print(dirichlet_dict)
 
+    print_log_message("creating test datasets")
     create_test_datatsets(test_df, dirichlet_dict,
                           write_dir, dataset_num, df_size)
 

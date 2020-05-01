@@ -47,9 +47,9 @@ class ModelLauncher():
                     "xgb": "14:00:00",
                     "svm": "96:00:00"
                     }
-    df_size_dict = {"x59":1056994,
-                    "y34":1708834}
-    num_datasets = 5
+    df_size_dict = {"x59": 1056994,
+                    "y34": 1708834}
+    num_datasets = 500
 
     def __init__(self, run_filters):
         self.run_filters = run_filters
@@ -90,21 +90,38 @@ class ModelLauncher():
         makedirs_safely(write_dir)
 
         if make_datasets:
-            for dataset_num in range(0, ModelLauncher.num_datasets):
-                dataset_num += 1
-                self.launch_create_testing_datasets(
-                    write_dir, data_dir, dataset_num, best_model_params)
+            self.launch_create_testing_datasets(
+                write_dir, data_dir, best_model_params)
 
         return best_model_params, write_dir
 
-    def launch_create_testing_datasets(self, write_dir, data_dir, dataset_num, best_model_params):
+    def chunks(l, n):
+        n = max(1, n)
+        return (l[i:i + n] for i in range(0, len(l), n))
 
-        params = [data_dir, write_dir, dataset_num, ModelLauncher.df_size_dict[f"{self.int_cause}"]]
-        jobname = f"{self.int_cause}_dataset_{dataset_num}_{best_model_params}"
+    def launch_create_testing_datasets(self, write_dir, data_dir, best_model_params):
+
         worker = f"/homes/agesak/thesis/analysis/create_test_datasets.py"
-        submit_mcod(jobname, "python", worker, cores=2, memory="12G",
-                    params=params, verbose=True, logging=True,
-                    jdrive=False, queue="long.q")
+
+        # if ModelLauncher.num_datasets == 500:
+        #     numbers = (list(chunks(range(1, 501), 100)))
+        if ModelLauncher.num_datasets == 500:
+            numbers = (list(ModelLauncher.chunks(range(1, 501), 125)))
+            dataset_dict = dict(zip(range(0, len(numbers)), numbers))
+            holds_dict = {key: [] for key in dataset_dict.keys()}
+            for batch in dataset_dict.keys():
+                datasets = dataset_dict[batch]
+                hold_ids = []
+                for dataset_num in datasets:
+                    params = [data_dir, write_dir, dataset_num,
+                              ModelLauncher.df_size_dict[f"{self.int_cause}"]]
+                    jobname = f"{self.int_cause}_dataset_{dataset_num}_{best_model_params}"
+                    jid = submit_mcod(jobname, "python", worker, cores=4, memory="30G",
+                                      params=params, verbose=True, logging=True,
+                                      jdrive=False, queue="i.q", holds=holds_dict[batch])
+                    hold_ids.append(jid)
+                    if (dataset_num == datasets[-1]) & (batch != list(dataset_dict.keys())[-1]):
+                        holds_dict.update({batch + 1: hold_ids})
 
     def launch_int_cause_predictions(self, write_dir, short_name):
         data_dir = f"{self.model_dir}/{self.description}"

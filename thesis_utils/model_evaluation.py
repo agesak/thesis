@@ -115,11 +115,14 @@ def generate_multiple_cause_rows(sample_df, test_df, cause):
     """
 
     multiple_cause_cols = [x for x in list(test_df) if "multiple_cause" in x]
+    test_df = test_df[["cause_id"] + multiple_cause_cols]
 
     # subset to only cause-specific rows in test df
     cause_df = test_df.loc[test_df.cause_id == cause]
+    print(len(cause_df))
     assert len(cause_df) != 0, "subsetting test df failed in creating 500 datasets"
     # assign chain causes by randomly sampling (with replacement) rows of cause-specific test df
+    print("about to sample test df")
     sample_df = cause_df[multiple_cause_cols].sample(
         len(sample_df), replace=True).reset_index(drop=True)
     sample_df["cause_id"] = cause
