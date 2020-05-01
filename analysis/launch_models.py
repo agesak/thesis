@@ -1,6 +1,7 @@
 import datetime
 import argparse
 import os
+import re
 
 from cod_prep.utils.misc import print_log_message
 from cod_prep.claude.claude_io import makedirs_safely
@@ -66,6 +67,7 @@ class ModelLauncher():
         else:
             self.description = self.run_filters["description"]
         self.model_dir = f"/ihme/cod/prep/mcod/process_data/{self.int_cause}/thesis"
+        self.dataset_dir = f"{self.model_dir}/sample_dirichlet/{self.description}"
 
     def create_training_data(self, model_dir):
         makedirs_safely(model_dir)
@@ -77,34 +79,17 @@ class ModelLauncher():
         test_df.to_csv(f"{model_dir}/test_df.csv", index=False)
         int_cause_df.to_csv(f"{model_dir}/int_cause_df.csv", index=False)
 
-    def compare_models(self, short_name, model_name, make_datasets):
-        data_dir = f"{self.model_dir}/{self.description}"
-
-        # get parameters of best model fit for given model
-        best_fit = get_best_fit(
-            model_dir=data_dir, short_name=short_name)
-        best_model_params = format_best_fit_params(best_fit, model_name)
-
-        # will use parameter specific folder for test datasets
-        write_dir = f"{self.model_dir}/sample_dirichlet/{short_name}/{self.description}/{best_model_params}"
-        makedirs_safely(write_dir)
-
-        if make_datasets:
-            self.launch_create_testing_datasets(
-                write_dir, data_dir, best_model_params)
-
-        return best_model_params, write_dir
-
     def chunks(l, n):
         n = max(1, n)
         return (l[i:i + n] for i in range(0, len(l), n))
 
-    def launch_create_testing_datasets(self, write_dir, data_dir, best_model_params):
+    def launch_create_testing_datasets(self, model_dir):
 
         worker = f"/homes/agesak/thesis/analysis/create_test_datasets.py"
+        makedirs_safely(self.dataset_dir)
 
-        # if ModelLauncher.num_datasets == 500:
-        #     numbers = (list(chunks(range(1, 501), 100)))
+        # if ModelLauncher.num_datasets == 10:
+        #     numbers = (list(ModelLauncher.chunks(range(1, 11), 10)))
         if ModelLauncher.num_datasets == 500:
             numbers = (list(ModelLauncher.chunks(range(1, 501), 125)))
             dataset_dict = dict(zip(range(0, len(numbers)), numbers))
@@ -113,36 +98,40 @@ class ModelLauncher():
                 datasets = dataset_dict[batch]
                 hold_ids = []
                 for dataset_num in datasets:
-                    params = [data_dir, write_dir, dataset_num,
+                    params = [model_dir, self.dataset_dir, dataset_num,
                               ModelLauncher.df_size_dict[f"{self.int_cause}"]]
-                    jobname = f"{self.int_cause}_dataset_{dataset_num}_{best_model_params}"
-                    jid = submit_mcod(jobname, "python", worker, cores=4, memory="30G",
-                                      params=params, verbose=True, logging=True,
-                                      jdrive=False, queue="i.q", holds=holds_dict[batch])
+                    jobname = f"{self.int_cause}_dataset_{dataset_num}"
+                    jid = submit_mcod(jobname, "python", worker,
+                                      cores=4, memory="30G",
+                                      params=params, verbose=True,
+                                      logging=True, jdrive=False,
+                                      queue="long.q", holds=holds_dict[batch])
                     hold_ids.append(jid)
                     if (dataset_num == datasets[-1]) & (batch != list(dataset_dict.keys())[-1]):
                         holds_dict.update({batch + 1: hold_ids})
 
-    def launch_int_cause_predictions(self, write_dir, short_name):
-        data_dir = f"{self.model_dir}/{self.description}"
+    def launch_int_cause_predictions(self, model_dir, short_name):
+        predicted_test_dir = f"{self.dataset_dir}/{short_name}"
 
-        params = [write_dir, data_dir, self.int_cause,
-                  ModelLauncher.param_dict[short_name]]
-        jobname = f"{ModelLauncher.param_dict[short_name]}_{self.int_cause}_predictions"
+        params = [model_dir, predicted_test_dir, self.int_cause,
+                  ModelLauncher.model_dict[short_name]]
+        jobname = f"{ModelLauncher.model_dict[short_name]}_{self.int_cause}_predictions"
         worker = f"/homes/agesak/thesis/analysis/run_unobserved_predictions.py"
         submit_mcod(jobname, "python", worker, cores=2, memory="12G",
                     params=params, verbose=True, logging=True,
                     jdrive=False, queue="i.q")
 
-    def launch_testing_models(self, model_name, short_name, best_model_params,
-                              write_dir, dataset_num):
+    def launch_testing_models(self, model_name, short_name, best_model_params, dataset_num):
 
         best_model_dir = f"{self.model_dir}/{self.description}/{short_name}/model_{best_model_params}"
-        dataset_dir = f"{write_dir}/dataset_{dataset_num}"
-        remove_if_output_exists(dataset_dir, "summary_stats.csv")
-        remove_if_output_exists(dataset_dir, "predictions.csv")
-        params = [best_model_dir, dataset_dir,
-                  best_model_params, self.int_cause]
+        testing_model_dir = f"{self.dataset_dir}/{short_name}"
+        makedirs_safely(testing_model_dir)
+        remove_if_output_exists(
+            testing_model_dir, f"dataset_{dataset_num}_summary_stats.csv")
+        remove_if_output_exists(
+            testing_model_dir, f"dataset_{dataset_num}_predictions.csv")
+        params = [best_model_dir, self.dataset_dir, testing_model_dir,
+                  best_model_params, self.int_cause, dataset_num]
         jobname = f"{model_name}_{self.int_cause}_predictions_dataset_{dataset_num}_{best_model_params}"
         worker = f"/homes/agesak/thesis/analysis/run_testing_predictions.py"
         submit_mcod(jobname, "python", worker, cores=3, memory="12G",
@@ -154,12 +143,11 @@ class ModelLauncher():
 
         write_dir = f"{model_dir}/{short_name}/model_{model_param}"
         makedirs_safely(write_dir)
-        train_dir = f"{self.model_dir}/{self.description}"
         # remove previous model runs
         remove_if_output_exists(write_dir, "grid_results.pkl")
         remove_if_output_exists(write_dir, "summary_stats.csv")
 
-        params = [write_dir, train_dir, model_param,
+        params = [write_dir, model_dir, model_param,
                   model_name, short_name, self.int_cause]
         jobname = f"{model_name}_{self.int_cause}_{model_param}"
         worker = f"/homes/agesak/thesis/analysis/run_models.py"
@@ -210,34 +198,33 @@ class ModelLauncher():
                 self._launch_models(params, model_name, short_name)
 
         if self.phase == "create_test_datasets":
-            for short_name in self.model_types:
-                model_name = ModelLauncher.model_dict[short_name]
-                best_model_params, write_dir = self.compare_models(
-                    short_name, model_name, make_datasets=True)
+            self.launch_create_testing_datasets(
+                model_dir=f"{self.model_dir}/{self.description}")
 
         if self.phase == "launch_testing_models":
             for short_name in self.model_types:
                 model_name = ModelLauncher.model_dict[short_name]
-                best_model_params, write_dir = self.compare_models(
-                    short_name, model_name, make_datasets=False)
-                print(best_model_params)
-                print(write_dir)
-                num_datasets = len(next(os.walk(write_dir))[1])
+                # get parameters of best model fit for given model
+                best_fit = get_best_fit(
+                    model_dir=f"{self.model_dir}/{self.description}",
+                    short_name=short_name)
+                best_model_params = format_best_fit_params(
+                    best_fit, model_name)
+                num_datasets = len([x for i, x in enumerate(
+                    os.listdir(self.dataset_dir)) if re.search(
+                    "dataset_[0-9]{0,3}.csv", x)])
                 failed = ModelLauncher.num_datasets - num_datasets
                 assert num_datasets == ModelLauncher.num_datasets, f"{failed} jobs creating test datasets failed"
                 for dataset in range(0, num_datasets):
                     dataset += 1
                     print(dataset)
                     self.launch_testing_models(
-                        model_name, short_name, best_model_params,
-                        write_dir, dataset)
+                        model_name, short_name, best_model_params, dataset)
 
         if self.phase == "launch_int_cause_predictions":
             for short_name in self.model_types:
-                model_name = ModelLauncher.model_dict[short_name]
-                best_model_params, write_dir = self.compare_models(
-                    short_name, model_name, make_datasets=False)
-                self.launch_int_cause_predictions(self, write_dir, short_name)
+                self.launch_int_cause_predictions(model_dir=f"{self.model_dir}/{self.description}",
+                                                  short_name=short_name)
 
 
 if __name__ == "__main__":

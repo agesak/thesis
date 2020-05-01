@@ -23,16 +23,16 @@ def create_test_datatsets(test_df, dirichlet_dict, write_dir, dataset_num,
         mcause_df = generate_multiple_cause_rows(subdf, test_df, cause)
         dfs.append(mcause_df)
 
-    df_dir = f"{write_dir}/dataset_{dataset_num}"
-    makedirs_safely(df_dir)
-    remove_if_output_exists(df_dir, "dataset.csv")
-    remove_if_output_exists(df_dir, "dirichlet_distribution.pkl")
+    # df_dir = f"{write_dir}/dataset_{dataset_num}"
+    # makedirs_safely(df_dir)
+    remove_if_output_exists(write_dir, f"dataset_{dataset_num}.csv")
+    remove_if_output_exists(write_dir, f"dataset_{dataset_num}_dirichlet_distribution.pkl")
 
     dfs = pd.concat(dfs, sort=True, ignore_index=True)
     print_log_message(f"writing dataset {dataset_num} to a df")
-    dfs.to_csv(f"{df_dir}/dataset.csv", index=False)
+    dfs.to_csv(f"{write_dir}/dataset_{dataset_num}.csv", index=False)
 
-    joblib.dump(dirichlet_dict, f"{df_dir}/dirichlet_distribution.pkl")
+    joblib.dump(dirichlet_dict, f"{write_dir}/dataset_{dataset_num}_dirichlet_distribution.pkl")
 
 
 def main(model_dir, write_dir, dataset_num, df_size):
@@ -51,7 +51,7 @@ def main(model_dir, write_dir, dataset_num, df_size):
     dts = dts * len(cause_distribution)
     print_log_message(dts)
     print_log_message(int(dts.sum()))
-    assert int(dts.sum()) == len(cause_distribution), "the sum of the dirichlet distribution must equal that of the uninformative distribution"
+    # assert int(dts.sum()) == len(cause_distribution), "the sum of the dirichlet distribution must equal that of the uninformative distribution"
     
     # dictionary of cause ids to each dirichlet distribution
     dirichlet_dict = dict(zip(cause_distribution.keys(), dts[0]))
