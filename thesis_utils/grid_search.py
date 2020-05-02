@@ -8,7 +8,7 @@ from thesis_utils.model_evaluation import (calculate_cccsmfa,
 
 from sklearn.feature_extraction.text import CountVectorizer
 from xgboost import XGBClassifier
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, BaggingClassifier
 from sklearn.naive_bayes import MultinomialNB, BernoulliNB, ComplementNB
 from sklearn.svm import SVC
 from sklearn.pipeline import Pipeline
@@ -83,14 +83,39 @@ def format_gridsearch_params(model_name, param):
     return params
 
 
-def run_pipeline(model, model_df, model_params, write_dir, int_cause):
+def run_pipeline(model, short_name, model_df, model_params, write_dir, int_cause):
 
-    pipeline = Pipeline([
-        ("bow", CountVectorizer(lowercase=False)),
-        ("clf", ClfSwitcher())
-    ])
+    if short_name == "svm_bag":
+        model_params = {key.replace(
+            "clf__estimator", "name__base_estimator"): value for key, value in model_params.items()}
 
-    model_params.update({"clf__estimator": [eval(model)()]})
+        # right now is hard coded...
+        model_params.update({"name__n_estimators":[50],
+            "name__max_samples": [71332],
+            "name__max_features":[],
+            "name__bootstrap":[True],
+            "name__bootstrap_features":[True],
+            "name__oob_score":[True]})
+
+        model = {'model': BaggingClassifier,
+                 'kwargs': {'base_estimator': eval(model)()},
+                 'parameters': model_params}
+
+        # create pipeline with bagging classifier
+        pipeline = Pipeline([
+            ("bow", CountVectorizer(lowercase=False)),
+            ('name', model['model'](**model['kwargs']))
+        ])
+
+        cv_params = model['parameters']
+    else:
+        pipeline = Pipeline([
+            ("bow", CountVectorizer(lowercase=False)),
+            ("clf", ClfSwitcher())
+        ])
+
+        model_params.update({"clf__estimator": [eval(model)()]})
+        cv_params = model_params.copy()
 
     scorer_list = create_custom_scorers(
         int_cause)
@@ -103,7 +128,7 @@ def run_pipeline(model, model_df, model_params, write_dir, int_cause):
                "cccsmfa": scorer_list[5],
                "concordance": scorer_list[6]}
 
-    gscv = GridSearchCV(pipeline, model_params, cv=5,
+    gscv = GridSearchCV(pipeline, cv_params, cv=5,
                         scoring=scoring, n_jobs=3, pre_dispatch=6,
                         refit="concordance", verbose=6)
 

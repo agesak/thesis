@@ -8,29 +8,18 @@ from sklearn.externals import joblib
 from sklearn.metrics import precision_score, recall_score, accuracy_score
 
 
-def format_for_bow(df):
-    multiple_cause_cols = [x for x in list(df) if "cause" in x]
-    multiple_cause_cols.remove("cause_id")
-    # maybe try "" here
-    df["cause_info"] = df[[x for x in list(
-        df) if "multiple_cause" in x]].fillna(
-        "").astype(str).apply(lambda x: " ".join(x), axis=1)
-    df = df[["cause_id", "cause_info"]]
-    return df
-
-
 def main(best_model_dir, dataset_dir, testing_model_dir, best_model_params, int_cause, dataset_num):
 
     # read in model object of best model
     grid_results = joblib.load(f"{best_model_dir}/grid_results.pkl")
+    print("loaded the model object")
 
     # read in test dataset
     dataset = pd.read_csv(f"{dataset_dir}/dataset_{dataset_num}.csv")
-    dataset = format_for_bow(dataset)
 
     # predit on test dataset
     dataset["predicted"] = grid_results.predict(dataset["cause_info"])
-
+    print("predicted")
 
     macro_precision = precision_score(y_true=dataset.cause_id,
                                       y_pred=dataset.predicted, average="macro")
@@ -47,6 +36,7 @@ def main(best_model_dir, dataset_dir, testing_model_dir, best_model_params, int_
     concordance = calculate_concordance(y_true=dataset.cause_id,
                                         y_pred=dataset.predicted,
                                         int_cause=int_cause)
+    print("calculated metrics")
 
     # maybe save something identifiable about model
     df = pd.DataFrame({"Concordance": [concordance],
@@ -59,10 +49,13 @@ def main(best_model_dir, dataset_dir, testing_model_dir, best_model_params, int_
                        "best_model_params": [best_model_params]})
     df.to_csv(
         f"{testing_model_dir}/dataset_{dataset_num}_summary_stats.csv", index=False)
+    print("wrote summary stats")
     dataset.to_csv(
         f"{testing_model_dir}/dataset_{dataset_num}_predictions.csv", index=False)
+    print("wrote predictions")
     joblib.dump(
         grid_results, f"{testing_model_dir}/dataset_{dataset_num}_grid_results.pkl")
+    print("wrote grid_results")
 
 
 if __name__ == '__main__':

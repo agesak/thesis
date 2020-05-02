@@ -102,6 +102,16 @@ def format_best_fit_params(best_fit, model_name):
 
     return best_model_params
 
+def format_for_bow(df):
+    multiple_cause_cols = [x for x in list(df) if "cause" in x]
+    multiple_cause_cols.remove("cause_id")
+    # maybe try "" here
+    df["cause_info"] = df[[x for x in list(
+        df) if "multiple_cause" in x]].fillna(
+        "").astype(str).apply(lambda x: " ".join(x), axis=1)
+    df = df[["cause_id", "cause_info"]]
+    return df
+
 
 def generate_multiple_cause_rows(sample_df, test_df, cause):
     """
@@ -114,17 +124,19 @@ def generate_multiple_cause_rows(sample_df, test_df, cause):
         cause-specific df with chain cols randomly sampled from test df
     """
 
-    multiple_cause_cols = [x for x in list(test_df) if "multiple_cause" in x]
-    test_df = test_df[["cause_id"] + multiple_cause_cols]
+    # get single "cause_info" column
+    test_df = format_for_bow(test_df)
 
     # subset to only cause-specific rows in test df
     cause_df = test_df.loc[test_df.cause_id == cause]
+    # drop any na rows
     print(len(cause_df))
     assert len(cause_df) != 0, "subsetting test df failed in creating 500 datasets"
     # assign chain causes by randomly sampling (with replacement) rows of cause-specific test df
     print("about to sample test df")
-    sample_df = cause_df[multiple_cause_cols].sample(
+    sample_df = cause_df[["cause_info"]].sample(
         len(sample_df), replace=True).reset_index(drop=True)
+    print("finished sampling")
     sample_df["cause_id"] = cause
 
     return sample_df

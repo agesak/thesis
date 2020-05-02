@@ -4,9 +4,10 @@ import sys
 from sklearn.externals import joblib
 
 from cod_prep.utils.misc import print_log_message
-from cod_prep.claude.claude_io import makedirs_safely
 from thesis_utils.model_evaluation import generate_multiple_cause_rows
 from thesis_utils.misc import remove_if_output_exists
+
+DEM_COLS = ["cause_id", "location_id", "sex_id", "year_id", "age_group_id"]
 
 
 def create_test_datatsets(test_df, dirichlet_dict, write_dir, dataset_num,
@@ -26,13 +27,16 @@ def create_test_datatsets(test_df, dirichlet_dict, write_dir, dataset_num,
     # df_dir = f"{write_dir}/dataset_{dataset_num}"
     # makedirs_safely(df_dir)
     remove_if_output_exists(write_dir, f"dataset_{dataset_num}.csv")
-    remove_if_output_exists(write_dir, f"dataset_{dataset_num}_dirichlet_distribution.pkl")
+    remove_if_output_exists(
+        write_dir, f"dataset_{dataset_num}_dirichlet_distribution.pkl")
 
+    print_log_message("about to concat")
     dfs = pd.concat(dfs, sort=True, ignore_index=True)
     print_log_message(f"writing dataset {dataset_num} to a df")
     dfs.to_csv(f"{write_dir}/dataset_{dataset_num}.csv", index=False)
 
-    joblib.dump(dirichlet_dict, f"{write_dir}/dataset_{dataset_num}_dirichlet_distribution.pkl")
+    joblib.dump(dirichlet_dict,
+                f"{write_dir}/dataset_{dataset_num}_dirichlet_distribution.pkl")
 
 
 def main(model_dir, write_dir, dataset_num, df_size):
@@ -51,15 +55,15 @@ def main(model_dir, write_dir, dataset_num, df_size):
     dts = dts * len(cause_distribution)
     print_log_message(dts)
     print_log_message(int(dts.sum()))
-    # assert int(dts.sum()) == len(cause_distribution), "the sum of the dirichlet distribution must equal that of the uninformative distribution"
-    
+
     # dictionary of cause ids to each dirichlet distribution
     dirichlet_dict = dict(zip(cause_distribution.keys(), dts[0]))
     print(dirichlet_dict)
 
     print_log_message("creating test datasets")
     create_test_datatsets(test_df, dirichlet_dict,
-                          write_dir, dataset_num, df_size)
+                          write_dir, dataset_num,
+                          df_size)
 
 
 if __name__ == '__main__':
