@@ -2,16 +2,14 @@ import datetime
 import argparse
 import os
 import re
+from importlib import import_module
 
 from cod_prep.utils.misc import print_log_message
 from cod_prep.claude.claude_io import makedirs_safely
 from mcod_prep.utils.mcod_cluster_tools import submit_mcod
 from thesis_utils.misc import str2bool, remove_if_output_exists
 from thesis_utils.modeling import (read_in_data, create_train_test,
-                                   random_forest_params,
                                    naive_bayes_params,
-                                   svm_params, svm_bag_params,
-                                   gbt_params, xgb_params,
                                    format_argparse_params)
 from thesis_utils.model_evaluation import (get_best_fit,
                                            format_best_fit_params)
@@ -54,8 +52,8 @@ class ModelLauncher():
                     }
     df_size_dict = {"x59": 1056994,
                     "y34": 1708834}
-    # num_datasets = 500
-    num_datasets = 10
+    num_datasets = 500
+    # num_datasets = 10
 
     def __init__(self, run_filters):
         self.run_filters = run_filters
@@ -93,10 +91,10 @@ class ModelLauncher():
         worker = f"/homes/agesak/thesis/analysis/create_test_datasets.py"
         makedirs_safely(self.dataset_dir)
 
-        if ModelLauncher.num_datasets == 10:
-            numbers = (list(ModelLauncher.chunks(range(1, 11), 10)))
-        # if ModelLauncher.num_datasets == 500:
-        #     numbers = (list(ModelLauncher.chunks(range(1, 501), 125)))
+        # if ModelLauncher.num_datasets == 10:
+        #     numbers = (list(ModelLauncher.chunks(range(1, 11), 10)))
+        if ModelLauncher.num_datasets == 500:
+            numbers = (list(ModelLauncher.chunks(range(1, 501), 125)))
             dataset_dict = dict(zip(range(0, len(numbers)), numbers))
             holds_dict = {key: [] for key in dataset_dict.keys()}
             for batch in dataset_dict.keys():
@@ -119,29 +117,45 @@ class ModelLauncher():
         predicted_test_dir = f"{self.dataset_dir}/{short_name}"
 
         params = [self.model_dir, predicted_test_dir, self.int_cause,
-                short_name, ModelLauncher.model_dict[short_name]]
+                  short_name, ModelLauncher.model_dict[short_name]]
         jobname = f"{ModelLauncher.model_dict[short_name]}_{self.int_cause}_predictions"
         worker = f"/homes/agesak/thesis/analysis/run_unobserved_predictions.py"
         submit_mcod(jobname, "python", worker, cores=2, memory="12G",
                     params=params, verbose=True, logging=True,
                     jdrive=False, queue="i.q")
 
-    def launch_testing_models(self, model_name, short_name, best_model_params, dataset_num):
+    def launch_testing_models(self, model_name, short_name, best_model_params):
 
         best_model_dir = f"{self.model_dir}/{short_name}/model_{best_model_params}"
         testing_model_dir = f"{self.dataset_dir}/{short_name}"
         makedirs_safely(testing_model_dir)
-        remove_if_output_exists(
-            testing_model_dir, f"dataset_{dataset_num}_summary_stats.csv")
-        remove_if_output_exists(
-            testing_model_dir, f"dataset_{dataset_num}_predictions.csv")
-        params = [best_model_dir, self.dataset_dir, testing_model_dir,
-                  best_model_params, self.int_cause, dataset_num]
-        jobname = f"{model_name}_{self.int_cause}_predictions_dataset_{dataset_num}_{best_model_params}"
         worker = f"/homes/agesak/thesis/analysis/run_testing_predictions.py"
-        submit_mcod(jobname, "python", worker, cores=3, memory="20G",
-                    params=params, verbose=True, logging=True,
-                    jdrive=False, queue="i.q")
+
+        # if ModelLauncher.num_datasets == 10:
+        #     numbers = (list(ModelLauncher.chunks(range(1, 11), 5)))
+        if ModelLauncher.num_datasets == 500:
+            numbers = (list(ModelLauncher.chunks(range(1, 501), 125)))
+            dataset_dict = dict(zip(range(0, len(numbers)), numbers))
+            holds_dict = {key: [] for key in dataset_dict.keys()}
+            for batch in dataset_dict.keys():
+                datasets = dataset_dict[batch]
+                hold_ids = []
+                for dataset_num in datasets:
+                    remove_if_output_exists(
+                        testing_model_dir, f"dataset_{dataset_num}_summary_stats.csv")
+                    remove_if_output_exists(
+                        testing_model_dir, f"dataset_{dataset_num}_predictions.csv")
+                    params = [best_model_dir, self.dataset_dir, testing_model_dir,
+                              best_model_params, self.int_cause, dataset_num]
+                    jobname = f"{model_name}_{self.int_cause}_predictions_dataset_{dataset_num}_{best_model_params}"
+                    jid = submit_mcod(jobname, "python", worker,
+                                      cores=3, memory="20G",
+                                      params=params, verbose=True,
+                                      logging=True, jdrive=False,
+                                      queue="i.q", holds=holds_dict[batch])
+                    hold_ids.append(jid)
+                    if (dataset_num == datasets[-1]) & (batch != list(dataset_dict.keys())[-1]):
+                        holds_dict.update({batch + 1: hold_ids})
 
     def launch_training_models(self, model_name, short_name,
                                model_param):
@@ -159,16 +173,8 @@ class ModelLauncher():
         submit_mcod(jobname, "python", worker, cores=4,
                     memory=f"{ModelLauncher.memory_dict[short_name]}G",
                     params=params, verbose=True, logging=True,
-                    jdrive=False, queue="long.q", runtime=f"{ModelLauncher.runtime_dict[short_name]}")
-
-    def _launch_models(self, params, model_name, short_name):
-        """helper function to launch training models"""
-
-        for parameter in params:
-            param = format_argparse_params(
-                parameter, ModelLauncher.param_dict[short_name])
-            self.launch_training_models(model_name, short_name,
-                                        param)
+                    jdrive=False, queue="long.q",
+                    runtime=f"{ModelLauncher.runtime_dict[short_name]}")
 
     def launch(self):
         if self.phase == "train_test":
@@ -177,31 +183,19 @@ class ModelLauncher():
         if self.phase == "launch_training_model":
             for short_name in self.model_types:
                 model_name = ModelLauncher.model_dict[short_name]
-                if model_name == "RandomForestClassifier":
-                    print_log_message("launching Random Forest")
-                    params = random_forest_params(short_name)
-                elif model_name == "MultinomialNB":
-                    print_log_message("launching Multinomial Naive Bayes")
+                if model_name in ["MultinomialNB", "BernoulliNB", "ComplementNB"]:
                     params = naive_bayes_params(short_name)
-                elif model_name == "BernoulliNB":
-                    print_log_message("launching Bernoulli Naive Bayes")
-                    params = naive_bayes_params(short_name)
-                elif model_name == "ComplementNB":
-                    print_log_message("launching Complement Naive Bayes")
-                    params = naive_bayes_params(short_name)
-                elif (model_name == "SVC") & (short_name == "svm"):
-                    print_log_message("launching SVC")
-                    params = svm_params(short_name)
-                elif (model_name == "SVC") & (short_name == "svm_bag"):
-                    print_log_message("launching bag SVC")
-                    params = svm_bag_params(short_name)
-                elif model_name == "GradientBoostingClassifier":
-                    params = gbt_params(short_name)
-                elif model_name == "XGBClassifier":
-                    params = xgb_params(short_name)
+                else:
+                    get_params = getattr(import_module(
+                        f"thesis_utils.modeling"), f"{short_name}_params")
+                    params = get_params(short_name)
+                print_log_message(f"launching {model_name}")
                 print_log_message(
                     f"{len(params)} sets of model parameters")
-                self._launch_models(params, model_name, short_name)
+                for parameter in params:
+                    param = format_argparse_params(
+                        parameter, ModelLauncher.param_dict[short_name])
+                    self.launch_training_models(model_name, short_name, param)
 
         if self.phase == "create_test_datasets":
             self.launch_create_testing_datasets()
@@ -220,11 +214,8 @@ class ModelLauncher():
                     "dataset_[0-9]{0,3}.csv", x)])
                 failed = ModelLauncher.num_datasets - num_datasets
                 assert num_datasets == ModelLauncher.num_datasets, f"{failed} jobs creating test datasets failed"
-                for dataset in range(0, num_datasets):
-                    dataset += 1
-                    print(dataset)
-                    self.launch_testing_models(
-                        model_name, short_name, best_model_params, dataset)
+                self.launch_testing_models(
+                    model_name, short_name, best_model_params)
 
         if self.phase == "launch_int_cause_predictions":
             for short_name in self.model_types:

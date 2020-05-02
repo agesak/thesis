@@ -96,7 +96,7 @@ def create_train_test(df, test, int_cause):
     return train_df[DEM_COLS + ["cause_info", f"{int_cause}"]], test_df[keep_cols], garbage_df[keep_cols]
 
 
-def random_forest_params(model):
+def rf_params(model):
     assert model == "rf", "wrong model type"
     df = pd.read_csv("/homes/agesak/thesis/maps/parameters.csv")
     clf__estimator__n_estimators = df.loc[df[

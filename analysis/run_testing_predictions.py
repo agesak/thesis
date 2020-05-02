@@ -38,7 +38,7 @@ def main(best_model_dir, dataset_dir, testing_model_dir, best_model_params, int_
                                         int_cause=int_cause)
     print("calculated metrics")
 
-    # maybe save something identifiable about model
+    # save information about each prediction
     df = pd.DataFrame({"Concordance": [concordance],
                        "CCCSMFA": [cccsmfa],
                        "Macro Recall": [macro_recall],
