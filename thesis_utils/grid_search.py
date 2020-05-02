@@ -49,7 +49,7 @@ def create_custom_scorers(int_cause):
 
 def transform_measure_cols(df, measure, model_name, params):
     """Change """
-    measure_dict = {"int": int, "float": float}
+    measure_dict = {"int": int, "float": float, "bool": bool}
     measure_cols = df.loc[df[f"{model_name}_dtype"] ==
                           measure, f"{model_name}"].unique().tolist()
     for measure_col in measure_cols:
@@ -83,20 +83,10 @@ def format_gridsearch_params(model_name, param):
     return params
 
 
-def run_pipeline(model, short_name, model_df, model_params, write_dir, int_cause):
+def run_pipeline(model, short_name, model_df, model_params,
+                 write_dir, int_cause):
 
     if short_name == "svm_bag":
-        model_params = {key.replace(
-            "clf__estimator", "name__base_estimator"): value for key, value in model_params.items()}
-
-        # right now is hard coded...
-        model_params.update({"name__n_estimators":[50],
-            "name__max_samples": [71332],
-            "name__max_features":[],
-            "name__bootstrap":[True],
-            "name__bootstrap_features":[True],
-            "name__oob_score":[True]})
-
         model = {'model': BaggingClassifier,
                  'kwargs': {'base_estimator': eval(model)()},
                  'parameters': model_params}

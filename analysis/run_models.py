@@ -8,12 +8,15 @@ from thesis_utils.grid_search import run_pipeline, format_gridsearch_params
 
 def main(model_param, model_name, write_dir, train_dir, int_cause, short_name):
 
-    model_df = pd.read_csv(f"{train_dir}/train_df.csv")[["cause_id", "cause_info", f"{int_cause}"]]
+    model_df = pd.read_csv(
+        f"{train_dir}/train_df.csv")[
+        ["cause_id", "cause_info", f"{int_cause}"]]
     print_log_message("formatting parameters")
-    model_params = format_gridsearch_params(model_name, model_param)
+    model_params = format_gridsearch_params(short_name, model_param)
 
     print_log_message("running pipeline")
-    results, grid_results = run_pipeline(model_name, short_name, model_df, model_params,
+    results, grid_results = run_pipeline(model_name, short_name,
+                                         model_df, model_params,
                                          write_dir, int_cause)
     results.to_csv(f"{write_dir}/summary_stats.csv", index=False)
     joblib.dump(grid_results, f"{write_dir}/grid_results.pkl")

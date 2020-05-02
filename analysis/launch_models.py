@@ -10,8 +10,8 @@ from thesis_utils.misc import str2bool, remove_if_output_exists
 from thesis_utils.modeling import (read_in_data, create_train_test,
                                    random_forest_params,
                                    naive_bayes_params,
-                                   svm_params, gbt_params,
-                                   xgb_params,
+                                   svm_params, svm_bag_params,
+                                   gbt_params, xgb_params,
                                    format_argparse_params)
 from thesis_utils.model_evaluation import (get_best_fit,
                                            format_best_fit_params)
@@ -24,7 +24,7 @@ class ModelLauncher():
                   "bernoulli_nb": "BernoulliNB",
                   "complement_nb": "ComplementNB",
                   "svm": "SVC",
-                  "svm_bag":"SVC",
+                  "svm_bag": "SVC",
                   "gbt": "GradientBoostingClassifier",
                   "xgb": "XGBClassifier"}
     param_dict = {"rf": 4,
@@ -32,7 +32,7 @@ class ModelLauncher():
                   "bernoulli_nb": 1,
                   "complement_nb": 1,
                   "svm": 4,
-                  "svm_bag":4,
+                  "svm_bag": 7,
                   "gbt": 4,
                   "xgb": 4}
     memory_dict = {"rf": 65,
@@ -42,7 +42,7 @@ class ModelLauncher():
                    "gbt": 30,
                    "xgb": 20,
                    "svm": 40,
-                   "svm_bag":20}
+                   "svm_bag": 20}
     runtime_dict = {"rf": "52:00:00",
                     "multi_nb": "1:00:00",
                     "complement_nb": "1:00:00",
@@ -50,12 +50,12 @@ class ModelLauncher():
                     "gbt": "96:00:00",
                     "xgb": "14:00:00",
                     "svm": "96:00:00",
-                    "svm_bag":"24:00:00"
+                    "svm_bag": "24:00:00"
                     }
     df_size_dict = {"x59": 1056994,
                     "y34": 1708834}
-    num_datasets = 500
-    # num_datasets = 10
+    # num_datasets = 500
+    num_datasets = 10
 
     def __init__(self, run_filters):
         self.run_filters = run_filters
@@ -93,10 +93,10 @@ class ModelLauncher():
         worker = f"/homes/agesak/thesis/analysis/create_test_datasets.py"
         makedirs_safely(self.dataset_dir)
 
-        # if ModelLauncher.num_datasets == 10:
-        #     numbers = (list(ModelLauncher.chunks(range(1, 11), 10)))
-        if ModelLauncher.num_datasets == 500:
-            numbers = (list(ModelLauncher.chunks(range(1, 501), 125)))
+        if ModelLauncher.num_datasets == 10:
+            numbers = (list(ModelLauncher.chunks(range(1, 11), 10)))
+        # if ModelLauncher.num_datasets == 500:
+        #     numbers = (list(ModelLauncher.chunks(range(1, 501), 125)))
             dataset_dict = dict(zip(range(0, len(numbers)), numbers))
             holds_dict = {key: [] for key in dataset_dict.keys()}
             for batch in dataset_dict.keys():
@@ -119,7 +119,7 @@ class ModelLauncher():
         predicted_test_dir = f"{self.dataset_dir}/{short_name}"
 
         params = [self.model_dir, predicted_test_dir, self.int_cause,
-                  ModelLauncher.model_dict[short_name]]
+                short_name, ModelLauncher.model_dict[short_name]]
         jobname = f"{ModelLauncher.model_dict[short_name]}_{self.int_cause}_predictions"
         worker = f"/homes/agesak/thesis/analysis/run_unobserved_predictions.py"
         submit_mcod(jobname, "python", worker, cores=2, memory="12G",
@@ -179,23 +179,26 @@ class ModelLauncher():
                 model_name = ModelLauncher.model_dict[short_name]
                 if model_name == "RandomForestClassifier":
                     print_log_message("launching Random Forest")
-                    params = random_forest_params(model_name)
+                    params = random_forest_params(short_name)
                 elif model_name == "MultinomialNB":
                     print_log_message("launching Multinomial Naive Bayes")
-                    params = naive_bayes_params(model_name)
+                    params = naive_bayes_params(short_name)
                 elif model_name == "BernoulliNB":
                     print_log_message("launching Bernoulli Naive Bayes")
-                    params = naive_bayes_params(model_name)
+                    params = naive_bayes_params(short_name)
                 elif model_name == "ComplementNB":
                     print_log_message("launching Complement Naive Bayes")
-                    params = naive_bayes_params(model_name)
-                elif model_name == "SVC":
+                    params = naive_bayes_params(short_name)
+                elif (model_name == "SVC") & (short_name == "svm"):
                     print_log_message("launching SVC")
-                    params = svm_params(model_name)
+                    params = svm_params(short_name)
+                elif (model_name == "SVC") & (short_name == "svm_bag"):
+                    print_log_message("launching bag SVC")
+                    params = svm_bag_params(short_name)
                 elif model_name == "GradientBoostingClassifier":
-                    params = gbt_params(model_name)
+                    params = gbt_params(short_name)
                 elif model_name == "XGBClassifier":
-                    params = xgb_params(model_name)
+                    params = xgb_params(short_name)
                 print_log_message(
                     f"{len(params)} sets of model parameters")
                 self._launch_models(params, model_name, short_name)
@@ -211,7 +214,7 @@ class ModelLauncher():
                     model_dir=self.model_dir,
                     short_name=short_name)
                 best_model_params = format_best_fit_params(
-                    best_fit, model_name)
+                    best_fit, short_name)
                 num_datasets = len([x for i, x in enumerate(
                     os.listdir(self.dataset_dir)) if re.search(
                     "dataset_[0-9]{0,3}.csv", x)])

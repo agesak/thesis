@@ -10,16 +10,6 @@ from sklearn.naive_bayes import MultinomialNB, BernoulliNB, ComplementNB
 DEM_COLS = ["age_group_id", "sex_id", "location_id", "year_id"]
 
 
-# def read_in_summary_stats(model_path):
-#     summaries = []
-#     for r, d, f in os.walk(model_path):
-#         for file in f:
-#             # regex with dataset then num
-#             if '.csv' in file:
-#                 summary_stats = pd.read_csv(os.path.join(r, file))
-#                 summaries.append(summary_stats)
-#     return pd.concat(summaries)
-
 def read_in_summary_stats(model_path):
 
     summaries = []
@@ -50,7 +40,7 @@ def aggregate_evaluation_metrics(summaries, testing_dir):
     summary_df.to_csv(f"{testing_dir}/model_metrics_summary.csv", index=False)
 
 
-def main(data_dir, predicted_test_dir, int_cause, model_name):
+def main(data_dir, predicted_test_dir, int_cause, short_name, model_name):
     # read in predictions from 500 test datasets
     # aggregate the evaluation metrics from each of the 500
     # refit model on all the observed data
@@ -73,9 +63,18 @@ def main(data_dir, predicted_test_dir, int_cause, model_name):
 
     # refit a model on all the observed data
     param_df = pd.read_csv("/homes/agesak/thesis/maps/parameters.csv")
-    param_df = param_df[[x for x in list(param_df) if model_name in x]]
-    param_df[f"{model_name}"] = param_df[f"{model_name}"].str.replace(
-        "clf__estimator__", "")
+    param_df = param_df[[x for x in list(param_df) if short_name in x]]
+    # param_df[f"{short_name}"] = param_df[f"{short_name}"].str.replace(
+    #     "clf__estimator__", "")
+
+    # IDK IF THIS IF STATEMENTWORKS
+    if short_name == "svm_bag":
+        param_df = param_df.loc[param_df[f"{short_name}"].str.contains("base_estimator")]
+        param_df[f"{short_name}"] = param_df[f"{short_name}"].str.replace(
+            "name__base_estimator__", "")
+    else:
+        param_df[f"{short_name}"] = param_df[f"{short_name}"].str.replace(
+            "clf__estimator__", "")        
     params = summaries.best_model_params.iloc[0]
     if isinstance(params, six.string_types):
         best_params = params.split("_")
@@ -87,8 +86,7 @@ def main(data_dir, predicted_test_dir, int_cause, model_name):
     # ensure column dtypes are correct
     measure_dict = {"int": int, "float": float, "str":str}
     for key, value in param_kwargs.items():
-        dtype = param_df.loc[param_df[f"{model_name}"]
-                             == key, f"{model_name}_dtype"].iloc[0]
+        dtype = param_df.loc[param_df[f"{short_name}"] == key, f"{short_name}_dtype"].iloc[0]
         param_kwargs[key] = measure_dict[dtype](param_kwargs[key])
 
     # do the refit
@@ -113,6 +111,7 @@ if __name__ == '__main__':
     data_dir = str(sys.argv[1])
     predicted_test_dir = str(sys.argv[2])
     int_cause = str(sys.argv[3])
-    model_name = str(sys.argv[4])
+    short_name = str(sys.argv[4])
+    model_name = str(sys.argv[5])
 
-    main(data_dir, predicted_test_dir, int_cause, model_name)
+    main(data_dir, predicted_test_dir, int_cause, short_name, model_name)

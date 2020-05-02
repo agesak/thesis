@@ -97,7 +97,7 @@ def create_train_test(df, test, int_cause):
 
 
 def random_forest_params(model):
-    assert model == "RandomForestClassifier", "wrong model type"
+    assert model == "rf", "wrong model type"
     df = pd.read_csv("/homes/agesak/thesis/maps/parameters.csv")
     clf__estimator__n_estimators = df.loc[df[
         f"{model}"] == "clf__estimator__n_estimators",
@@ -118,8 +118,8 @@ def random_forest_params(model):
 
 
 def naive_bayes_params(model):
-    assert (model == "MultinomialNB") | (model == "BernoulliNB") | (
-        model == "ComplementNB"), "wrong model type"
+    assert (model == "multi_nb") | (model == "bernoulli_nb") | (
+        model == "complement_nb"), "wrong model type"
     df = pd.read_csv("/homes/agesak/thesis/maps/parameters.csv")
     clf__estimator__alpha = df.loc[df[
         f"{model}"] == "clf__estimator__alpha",
@@ -132,7 +132,7 @@ def naive_bayes_params(model):
 
 
 def svm_params(model):
-    assert model == "SVC", "wrong model type"
+    assert model == "svm", "wrong model type"
     df = pd.read_csv("/homes/agesak/thesis/maps/parameters.csv")
     clf__estimator__C = df.loc[df[
         f"{model}"] == "clf__estimator__C",
@@ -154,9 +154,37 @@ def svm_params(model):
         clf__estimator__C, clf__estimator__kernel, clf__estimator__decision_function_shape, clf__estimator__max_iter)]
     return params
 
+def svm_bag_params(model):
+    assert model == "svm_bag", "wrong model type"
+    df = pd.read_csv("/homes/agesak/thesis/maps/parameters.csv")
+    name__base_estimator__C = df.loc[df[
+        f"{model}"] == "name__base_estimator__C",
+        f"{model}_value"].str.split(",")[0]
+    name__base_estimator__kernel = df.loc[df[
+        f"{model}"] == "name__base_estimator__kernel",
+        f"{model}_value"].str.split(",")[1]
+    name__base_estimator__decision_function_shape = df.loc[df[
+        f"{model}"] == "name__base_estimator__decision_function_shape",
+        f"{model}_value"].str.split(",")[2]
+    name__n_estimators = df.loc[df[
+        f"{model}"] == "name__n_estimators",
+        f"{model}_value"].str.split(",")[3]
+    name__max_samples = df.loc[df[
+        f"{model}"] == "name__max_samples",
+        f"{model}_value"].str.split(",")[4]
+    name__bootstrap_features = df.loc[df[
+        f"{model}"] == "name__bootstrap_features",
+        f"{model}_value"].str.split(",")[5]
+    name__oob_score = df.loc[df[
+        f"{model}"] == "name__oob_score",
+        f"{model}_value"].str.split(",")[6]
+    keys = "name__base_estimator__C", "name__base_estimator__kernel", "name__base_estimator__decision_function_shape", "name__n_estimators", "name__max_samples", "name__bootstrap_features", "name__oob_score"
+    params = [dict(zip(keys, combo)) for combo in itertools.product(
+        name__base_estimator__C, name__base_estimator__kernel, name__base_estimator__decision_function_shape, name__n_estimators, name__max_samples, name__bootstrap_features, name__oob_score)]
+    return params
 
 def gbt_params(model):
-    assert model == "GradientBoostingClassifier", "wrong model type"
+    assert model == "gbt", "wrong model type"
     df = pd.read_csv("/homes/agesak/thesis/maps/parameters.csv")
     clf__estimator__n_estimators = df.loc[df[
         f"{model}"] == "clf__estimator__n_estimators",
@@ -176,7 +204,7 @@ def gbt_params(model):
     return params
 
 def xgb_params(model):
-    assert model == "XGBClassifier", "wrong model type"
+    assert model == "xgb", "wrong model type"
     df = pd.read_csv("/homes/agesak/thesis/maps/parameters.csv")
     clf__estimator__eta = df.loc[df[
         f"{model}"] == "clf__estimator__eta",
