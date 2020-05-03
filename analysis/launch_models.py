@@ -30,7 +30,7 @@ class ModelLauncher():
                   "bernoulli_nb": 1,
                   "complement_nb": 1,
                   "svm": 4,
-                  "svm_bag": 7,
+                  "svm_bag": 8,
                   "gbt": 4,
                   "xgb": 4}
     memory_dict = {"rf": 65,

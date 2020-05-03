@@ -3,6 +3,7 @@ import sys
 import os
 import six
 
+from sklearn.externals import joblib
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.naive_bayes import MultinomialNB, BernoulliNB, ComplementNB
@@ -13,7 +14,7 @@ DEM_COLS = ["age_group_id", "sex_id", "location_id", "year_id"]
 def read_in_summary_stats(model_path):
 
     summaries = []
-    for dataset_num in range(1, 11, 1):
+    for dataset_num in range(1, 501, 1):
         df = pd.read_csv(
             f"{model_path}/dataset_{dataset_num}_summary_stats.csv")
         summaries.append(df)
@@ -46,9 +47,6 @@ def main(data_dir, predicted_test_dir, int_cause, short_name, model_name):
     # refit model on all the observed data
     # predict on the x59/y34 data
 
-    # ex.
-    # testing_dir = "/ihme/cod/prep/mcod/process_data/x59/thesis/sample_dirichlet/gbt/2020_04_14_test/300_0.1"
-    # data_dir = "/ihme/cod/prep/mcod/process_data/x59/thesis/2020_04_14_test"
     summaries = read_in_summary_stats(predicted_test_dir)
 
     # summarize evaluation metrics across the datasets
@@ -59,9 +57,11 @@ def main(data_dir, predicted_test_dir, int_cause, short_name, model_name):
         f"{data_dir}/test_df.csv")[DEM_COLS + ["cause_id", "cause_info", f"{int_cause}"]]
     train_df = pd.read_csv(
         f"{data_dir}/test_df.csv")[DEM_COLS + ["cause_id", "cause_info", f"{int_cause}"]]
+    print("read in train and test")
     df = pd.concat([train_df, test_df], sort=True, ignore_index=True)
 
     # refit a model on all the observed data
+    print("reading in params df")
     param_df = pd.read_csv("/homes/agesak/thesis/maps/parameters.csv")
     param_df = param_df[[x for x in list(param_df) if short_name in x]]
     # param_df[f"{short_name}"] = param_df[f"{short_name}"].str.replace(
@@ -95,6 +95,7 @@ def main(data_dir, predicted_test_dir, int_cause, short_name, model_name):
     model_fit = eval(model_name)(**param_kwargs).fit(tf, df["cause_id"])
 
     # now predict on the unobserved data
+    print("reading in unobserved_df")
     unobserved_df = pd.read_csv(
         f"{data_dir}/int_cause_df.csv")[DEM_COLS + ["cause_id", "cause_info", f"{int_cause}"]]
     # need to remember explicitly what this does
@@ -103,7 +104,11 @@ def main(data_dir, predicted_test_dir, int_cause, short_name, model_name):
 
     # do I wanna save anything else about this?
     # also this might not be the best place to save this
+    print("writing to df")
     unobserved_df.to_csv(f"{predicted_test_dir}/model_predictions.csv")
+    joblib.dump(
+        model_fit, f"{predicted_test_dir}/model_fit.csv")
+    print("wrote model fit")
 
 
 if __name__ == '__main__':
@@ -113,5 +118,7 @@ if __name__ == '__main__':
     int_cause = str(sys.argv[3])
     short_name = str(sys.argv[4])
     model_name = str(sys.argv[5])
+    print(data_dir)
+    print(predicted_test_dir)
 
     main(data_dir, predicted_test_dir, int_cause, short_name, model_name)

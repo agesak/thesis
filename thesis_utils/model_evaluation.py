@@ -47,14 +47,14 @@ def calculate_concordance(y_true, y_pred, int_cause):
         # chance-corrected concordance
         ccc = (total - (1 / len(causes))) / (1 - (1 / len(causes)))
         causes = np.where(causes == cause, ccc, causes)
-
-    cccc = np.mean(causes, axis=0)
+    # it's possible some causes have zero rows in a given test dataset
+    cccc = np.nanmean(causes, axis=0)
 
     return cccc
 
 
 def get_best_fit(model_dir, short_name):
-    """Use the CCCSMFA to decide which model performs the best
+    """Use the CCC to decide which model performs the best
     Arguments:
         model_dir: (str) parent directory where all models are located
         short_name: (str) abbreviated ML classifier names -

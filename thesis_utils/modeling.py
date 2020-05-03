@@ -166,21 +166,24 @@ def svm_bag_params(model):
     name__base_estimator__decision_function_shape = df.loc[df[
         f"{model}"] == "name__base_estimator__decision_function_shape",
         f"{model}_value"].str.split(",")[2]
+    name__base_estimator__max_iter = df.loc[df[
+        f"{model}"] == "name__base_estimator__max_iter",
+        f"{model}_value"].str.split(",")[3]
     name__n_estimators = df.loc[df[
         f"{model}"] == "name__n_estimators",
-        f"{model}_value"].str.split(",")[3]
+        f"{model}_value"].str.split(",")[4]
     name__max_samples = df.loc[df[
         f"{model}"] == "name__max_samples",
-        f"{model}_value"].str.split(",")[4]
+        f"{model}_value"].str.split(",")[5]
     name__bootstrap_features = df.loc[df[
         f"{model}"] == "name__bootstrap_features",
-        f"{model}_value"].str.split(",")[5]
+        f"{model}_value"].str.split(",")[6]
     name__oob_score = df.loc[df[
         f"{model}"] == "name__oob_score",
-        f"{model}_value"].str.split(",")[6]
-    keys = "name__base_estimator__C", "name__base_estimator__kernel", "name__base_estimator__decision_function_shape", "name__n_estimators", "name__max_samples", "name__bootstrap_features", "name__oob_score"
+        f"{model}_value"].str.split(",")[7]
+    keys = "name__base_estimator__C", "name__base_estimator__kernel", "name__base_estimator__decision_function_shape", "name__base_estimator__max_iter",  "name__n_estimators", "name__max_samples", "name__bootstrap_features", "name__oob_score"
     params = [dict(zip(keys, combo)) for combo in itertools.product(
-        name__base_estimator__C, name__base_estimator__kernel, name__base_estimator__decision_function_shape, name__n_estimators, name__max_samples, name__bootstrap_features, name__oob_score)]
+        name__base_estimator__C, name__base_estimator__kernel, name__base_estimator__decision_function_shape, name__base_estimator__max_iter, name__n_estimators, name__max_samples, name__bootstrap_features, name__oob_score)]
     return params
 
 def gbt_params(model):
