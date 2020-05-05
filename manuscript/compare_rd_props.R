@@ -4,7 +4,7 @@ library(data.table)
 library(stringr)
 library(ggplot2)
 
-classifiers <- list("multi_nb"="Multinomial Naive Bayes")
+classifiers <- list("bernoulli_nb"="Bernoulli Naive Bayes")
 
 
 prep_data <- function(df, group_cols, prop_type){
@@ -18,7 +18,7 @@ prep_data <- function(df, group_cols, prop_type){
 }
 
 for (int_cause in c("y34", "x59")){
-  for (short_name in c("multi_nb")){
+  for (short_name in names(classifiers)){
     print(paste("working on", int_cause, short_name))
     df <- prep_data(df=paste0("/home/j/temp/agesak/thesis/", int_cause, "_", short_name, "_rd.csv"),
                              group_cols="cause_name", prop_type=classifiers[[short_name]])

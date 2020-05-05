@@ -230,15 +230,15 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="")
     parser.add_argument(
         "--phase", help="", required=True,
-        choices=["train_test", "launch_training_model",
-                 "create_test_datasets", "launch_testing_models",
+        choices=["train_test", "create_test_datasets",
+        "launch_training_model", "launch_testing_models",
                  "launch_int_cause_predictions"])
     parser.add_argument("--test", type=str2bool, nargs="?",
                         const=True, default=False)
     parser.add_argument(
         "--int_cause", help="either x59 or y34", required=True,
         choices=["x59", "y34"])
-    # not required
+    # not required for train_test/create_test_datasets
     parser.add_argument(
         "--model_type", help="short-hand name for ML classifier",
         choices=list(ModelLauncher.model_dict.keys()) + ["all"], nargs="*")
