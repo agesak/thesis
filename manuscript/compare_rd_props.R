@@ -20,9 +20,9 @@ prep_data <- function(df, group_cols, prop_type){
 for (int_cause in c("y34", "x59")){
   for (short_name in names(classifiers)){
     print(paste("working on", int_cause, short_name))
-    df <- prep_data(df=paste0("/home/j/temp/agesak/thesis/", int_cause, "_", short_name, "_rd.csv"),
+    df <- prep_data(df=paste0("/home/j/temp/agesak/thesis/model_results/", int_cause, "_", short_name, "_rd.csv"),
                              group_cols="cause_name", prop_type=classifiers[[short_name]])
-    rd <- prep_data(df=paste0("/home/j/temp/agesak/thesis/", int_cause, "_", short_name, "_predictions.csv"),
+    rd <- prep_data(df=paste0("/home/j/temp/agesak/thesis/model_results/", int_cause, "_", short_name, "_predictions.csv"),
                     group_cols="cause_name", prop_type="GBD 2019")
     all_df <- rbind(rd, df)
     plot <- ggplot(all_df, aes(x=reorder(cause_name, -prop), y=prop, fill=prop_type)) + 
@@ -30,9 +30,11 @@ for (int_cause in c("y34", "x59")){
       theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
             panel.background = element_blank(), axis.line = element_line(colour = "black"),
             axis.text.x = element_text(angle = 45, hjust = 1, size=10)) +
-      scale_x_discrete(labels = function(x) str_wrap(x, width = 17))
+      scale_x_discrete(labels = function(x) str_wrap(x, width = 17)) + xlab("Cause Name") +
+      ylab(paste(toupper(int_cause), "proportion")) + ggtitle(paste(toupper(int_cause), "Redistribution Fractions")) + 
+      labs(fill="Model Type") + scale_y_continuous(expand = c(0,0))
     
-    ggsave(paste0("/home/j/temp/agesak/thesis/figures/", short_name, "_compare_results_", int_cause , ".pdf"), plot, dpi=300, height=12, width=17)
+    ggsave(paste0("/home/j/temp/agesak/thesis/figures/", short_name, "_compare_results_", int_cause , ".pdf"), plot, dpi=300, height=12, width=19)
     
   }
   

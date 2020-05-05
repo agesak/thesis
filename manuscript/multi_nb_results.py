@@ -76,7 +76,7 @@ def choose_best_naive_bayes(int_cause):
 
     df = reduce(lambda left,right: pd.merge(left,right,on=['Evaluation metrics'],
                                                 how='outer'), [multi_df, complement_df, bernoulli_df])
-    df.to_csv(f"/home/j/temp/agesak/thesis/{int_cause}_naivebayes_summary.csv", index=False)
+    df.to_csv(f"/home/j/temp/agesak/thesis/model_results/test_set_summaries/{int_cause}_naivebayes_summary.csv", index=False)
 
     best_model = df[[x for x in list(df) if "Mean" in x]].idxmax(axis=1).iloc[0]
 
@@ -97,6 +97,6 @@ for int_cause in ["x59", "y34"]:
     df = format_classifier_results(int_cause, short_name)
     rd = format_gbd_results(int_cause)
     rd.to_csv(
-        f"/home/j/temp/agesak/thesis/{int_cause}_{short_name}_rd.csv", index=False)
+        f"/home/j/temp/agesak/thesis/model_results/{int_cause}_{short_name}_rd.csv", index=False)
     df.to_csv(
-        f"/home/j/temp/agesak/thesis/{int_cause}_{short_name}_predictions.csv", index=False)
+        f"/home/j/temp/agesak/thesis/model_results/{int_cause}_{short_name}_predictions.csv", index=False)

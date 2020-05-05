@@ -37,7 +37,7 @@ def plot_figure(df, int_cause, x_axis="learning_rate", y_axis="mean_test_concord
     plt.subplots_adjust(hspace=0.4, wspace=0.4)
     plt.ylabel(y_axis)
     plt.xlabel(x_axis)
-    plt.savefig(f"/home/j/temp/agesak/thesis/plots/{int_cause}_xgb.pdf")
+    plt.savefig(f"/home/j/temp/agesak/thesis/gridsearch_plots/{int_cause}_xgb.pdf")
 
 
 for int_cause in ["x59", "y34"]:
