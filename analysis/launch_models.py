@@ -6,6 +6,7 @@ from importlib import import_module
 
 from cod_prep.utils.misc import print_log_message
 from cod_prep.claude.claude_io import makedirs_safely
+from cod_prep.downloaders import create_age_bins
 from mcod_prep.utils.mcod_cluster_tools import submit_mcod
 from thesis_utils.misc import str2bool, remove_if_output_exists
 from thesis_utils.modeling import (read_in_data, create_train_test,
@@ -76,6 +77,10 @@ class ModelLauncher():
     def create_training_data(self):
         makedirs_safely(self.model_dir)
         df = read_in_data(self.int_cause, self.code_system_id)
+        df = create_age_bins(df, [39, 24, 224, 229, 47, 268, 294])
+        for age_group in df.age_group_id.unique():
+            
+
         train_df, test_df, int_cause_df = create_train_test(
             df, test=self.test, int_cause=self.int_cause)
         print_log_message("writing train/test to df")

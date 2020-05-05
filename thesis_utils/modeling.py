@@ -58,7 +58,7 @@ def read_in_data(int_cause, inj_garbage=False, code_system_id=None):
     return df
 
 
-def create_train_test(df, test, int_cause):
+def create_train_test(df, test, int_cause, age_group_0d):
     """Create train/test datasets, if running tests,
     randomly sample from all locations so models don't take forever to run"""
 
@@ -69,26 +69,26 @@ def create_train_test(df, test, int_cause):
 
     keep_cols = DEM_COLS + ["cause_info", f"{int_cause}"] + [x for x in list(df) if "multiple_cause" in x]
 
-    if test:
-        print_log_message(
-            "THIS IS A TEST.. only using 5000 rows from each loc")
-        df = df.merge(
-            locs[["location_id", "parent_id", "level"]],
-            on="location_id", how="left")
-        # map subnationals to parent so
-        # random sampling will be at country level
-        df["location_id"] = np.where(
-            df["level"] > 3, df["parent_id"],
-            df["location_id"])
-        df.drop(columns=["parent_id", "level"], inplace=True)
-        # get a random sample from each location
-        # bc full dataset takes forever to run
-        dfs = []
-        for loc in list(df.location_id.unique()):
-            subdf = df.query(f"location_id=={loc}")
-            random_df = subdf.sample(n=7000, replace=False)
-            dfs.append(random_df)
-        df = pd.concat(dfs, ignore_index=True, sort=True)
+    # if test:
+    #     print_log_message(
+    #         "THIS IS A TEST.. only using 5000 rows from each loc")
+    #     df = df.merge(
+    #         locs[["location_id", "parent_id", "level"]],
+    #         on="location_id", how="left")
+    #     # map subnationals to parent so
+    #     # random sampling will be at country level
+    #     df["location_id"] = np.where(
+    #         df["level"] > 3, df["parent_id"],
+    #         df["location_id"])
+    #     df.drop(columns=["parent_id", "level"], inplace=True)
+    #     # get a random sample from each location
+    #     # bc full dataset takes forever to run
+    #     dfs = []
+    #     for loc in list(df.location_id.unique()):
+    #         subdf = df.query(f"location_id=={loc}")
+    #         random_df = subdf.sample(n=7000, replace=False)
+    #         dfs.append(random_df)
+    #     df = pd.concat(dfs, ignore_index=True, sort=True)
 
     # split train 75%, test 25%
     train_df, test_df = train_test_split(df, test_size=0.25)
