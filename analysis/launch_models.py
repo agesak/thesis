@@ -32,13 +32,14 @@ class ModelLauncher():
                   "svm": 4,
                   "svm_bag": 8,
                   "gbt": 4,
-                  "xgb": 4}
-    memory_dict = {"rf": 65,
+                  "xgb": 5}
+                  # i think this will work for x59, unsure about y34
+    memory_dict = {"rf": 40,
                    "multi_nb": 8,
                    "bernoulli_nb": 6,
                    "complement_nb": 6,
                    "gbt": 30,
-                   "xgb": 20,
+                   "xgb": 12,
                    "svm": 40,
                    "svm_bag": 20}
     runtime_dict = {"rf": "52:00:00",
@@ -46,7 +47,7 @@ class ModelLauncher():
                     "complement_nb": "1:00:00",
                     "bernoulli_nb": "1:00:00",
                     "gbt": "96:00:00",
-                    "xgb": "14:00:00",
+                    "xgb": "48:00:00",
                     "svm": "96:00:00",
                     "svm_bag": "24:00:00"
                     }
@@ -149,10 +150,10 @@ class ModelLauncher():
                               best_model_params, self.int_cause, dataset_num]
                     jobname = f"{model_name}_{self.int_cause}_predictions_dataset_{dataset_num}_{best_model_params}"
                     jid = submit_mcod(jobname, "python", worker,
-                                      cores=3, memory="20G",
+                                      cores=3, memory="25G",
                                       params=params, verbose=True,
                                       logging=True, jdrive=False,
-                                      queue="i.q", holds=holds_dict[batch])
+                                      queue="long.q", holds=holds_dict[batch])
                     hold_ids.append(jid)
                     if (dataset_num == datasets[-1]) & (batch != list(dataset_dict.keys())[-1]):
                         holds_dict.update({batch + 1: hold_ids})
@@ -193,6 +194,9 @@ class ModelLauncher():
                 print_log_message(
                     f"{len(params)} sets of model parameters")
                 for parameter in params:
+                    print(parameter)
+                    print(len(parameter))
+                    print(ModelLauncher.param_dict[short_name])
                     param = format_argparse_params(
                         parameter, ModelLauncher.param_dict[short_name])
                     self.launch_training_models(model_name, short_name, param)

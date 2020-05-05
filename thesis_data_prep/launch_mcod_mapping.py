@@ -32,7 +32,7 @@ class MCauseLauncher(object):
         'ITA_ISTAT': '8G'}
 
     location_set_version_id = 420
-    cause_set_version_id = 357
+    cause_set_version_id = conf.get_id('reporting_cause_set_version')
     thesis_code = "/homes/agesak/thesis/thesis_data_prep"
     limited_sources = ["TWN_MOH", "MEX_INEGI", "BRA_SIM", "USA_NVSS"]
 
@@ -75,7 +75,8 @@ class MCauseLauncher(object):
         delete_claude_output('format_map', nid, extract_type_id,
                              sub_dirs=subdirs)
         if source in self.limited_sources:
-            limited_dir = get_limited_use_directory(source, int_cause, self.run_filters["inj_garbage"])
+            limited_dir = get_limited_use_directory(
+                source, int_cause, self.run_filters["inj_garbage"])
             if os.path.exists(
                     f"{limited_dir}/{nid}_{extract_type_id}_format_map.csv"):
                 os.remove(
@@ -87,7 +88,7 @@ class MCauseLauncher(object):
                   self.run_filters["inj_garbage"]]
         if self.run_filters["inj_garbage"]:
             jobname = f'format_map_injgarbage_{source}_{nid}_{year}_{int_cause}'
-        else:          
+        else:
             jobname = f'format_map_{source}_{nid}_{year}_{int_cause}'
         try:
             memory = self.source_memory_dict[source]
@@ -111,7 +112,8 @@ class MCauseLauncher(object):
         else:
             subdirs = f"{int_cause}/thesis"
         if source in self.limited_sources:
-            limited_dir = get_limited_use_directory(source, int_cause, self.run_filters["inj_garbage"])
+            limited_dir = get_limited_use_directory(
+                source, int_cause, self.run_filters["inj_garbage"])
             if not os.path.exists(
                     f"{limited_dir}/{nid}_{extract_type_id}_format_map.csv"):
                 print_log_message(

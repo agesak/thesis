@@ -221,9 +221,12 @@ def xgb_params(model):
     clf__estimator__subsample = df.loc[df[
         f"{model}"] == "clf__estimator__subsample",
         f"{model}_value"].str.split(",")[3]
-    keys = "clf__estimator__eta", "clf__estimator__gamma", "clf__estimator__max_depth", "clf__estimator__subsample"
+    clf__estimator__n_estimators = df.loc[df[
+        f"{model}"] == "clf__estimator__n_estimators",
+        f"{model}_value"].str.split(",")[4]    
+    keys = "clf__estimator__eta", "clf__estimator__gamma", "clf__estimator__max_depth", "clf__estimator__subsample", "clf__estimator__n_estimators"
     params = [dict(zip(keys, combo)) for combo in itertools.product(
-        clf__estimator__eta, clf__estimator__gamma, clf__estimator__max_depth, clf__estimator__subsample)]
+        clf__estimator__eta, clf__estimator__gamma, clf__estimator__max_depth, clf__estimator__subsample, clf__estimator__n_estimators)]
     return params
 
 

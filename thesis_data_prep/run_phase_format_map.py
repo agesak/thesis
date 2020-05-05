@@ -34,15 +34,18 @@ def get_formatting_method(source, data_type_id, year, drop_p2):
             f"{clean_source}"
         )
     except AttributeError:
-        print(f"No formatting method found! Check module & main function are named clean_{source}")
+        print(
+            f"No formatting method found! Check module & main function are named clean_{source}")
     return formatting_method, args
 
 
 def drop_non_mcause(df, explore):
     """Drop rows where we cannot believe the death certificate.
 
-    Mohsen decided in Oct. 2018 to exclude rows where there is only a single multiple cause
-    of death and it matches the underlying cause. Also need to drop any rows where there
+    Mohsen decided in Oct. 2018 to exclude rows where
+    there is only a single multiple cause
+    of death and it matches the underlying cause.
+    Also need to drop any rows where there
     are no causes in the chain; do this by ICD code.
     """
     chain_cols = [x for x in df.columns if ('multiple_cause_' in x)]
@@ -52,24 +55,27 @@ def drop_non_mcause(df, explore):
         df.loc[df[chain_col] != '0000', 'num_chain_causes'] += 1
 
     # if there is only one chain, find the column where it is
-    # in the US data, this is always the first chain column, but not the case for Mexico, e.g.
+    # in the US data, this is always the first chain column,
+    # but not the case for Mexico, e.g.
     df['non_missing_chain'] = chain_cols[0]
     for chain_col in chain_cols:
         df.loc[
-            (df['num_chain_causes'] == 1) & (df[chain_col] != '0000'), 'non_missing_chain'
+            (df['num_chain_causes'] == 1) & (
+                df[chain_col] != '0000'), 'non_missing_chain'
         ] = df[chain_col].copy()
 
     drop_rows = (
-        ((df['num_chain_causes'] == 1) & (df['cause'] == df['non_missing_chain'])) |
-        (df['num_chain_causes'] == 0)
-    )
+        ((df['num_chain_causes'] == 1) & (
+            df['cause'] == df['non_missing_chain'])) | (
+            df['num_chain_causes'] == 0))
 
     if not explore:
         df = df[~drop_rows]
     else:
         df['drop_rows'] = 0
         df.loc[drop_rows, 'drop_rows'] = 1
-        # this used to save the output, but we don't always need that, so I (Sarah) took it out.
+        # this used to save the output, but we don't
+        # always need that, so I (Sarah) took it out.
         # but someone could save this if they wanted to
 
     df = df.drop(['num_chain_causes', 'non_missing_chain'], axis=1)
@@ -78,41 +84,50 @@ def drop_non_mcause(df, explore):
 
 
 def run_pipeline(year, source, int_cause, code_system_id, code_map_version_id,
-                 cause_set_version_id, nid, extract_type_id, data_type_id, inj_garbage,
-                 diagnostic_acauses=None, explore=False, drop_p2=False):
+                 cause_set_version_id, nid, extract_type_id, data_type_id,
+                 inj_garbage, diagnostic_acauses=None,
+                 explore=False, drop_p2=False):
     """Clean, map, and prep data for next steps."""
 
     print_log_message("Formatting data")
-    formatting_method, args = get_formatting_method(source, data_type_id, year, drop_p2=drop_p2)
+    formatting_method, args = get_formatting_method(
+        source, data_type_id, year, drop_p2=drop_p2)
     df = formatting_method(*args)
 
     print_log_message("Dropping rows without multiple cause")
     df = drop_non_mcause(df, explore)
 
     print_log_message("Mapping data")
-    Mapper = MCoDMapper(int_cause, code_system_id, code_map_version_id, drop_p2=drop_p2)
+    Mapper = MCoDMapper(int_cause, code_system_id,
+                        code_map_version_id, drop_p2=drop_p2)
     df = Mapper.get_computed_dataframe(df)
 
     cause_cols = [x for x in list(df) if ("cause" in x) & ~(
         x.endswith("code_original")) & ~(x.endswith(f"{int_cause}"))]
     cause_cols.remove("cause_id")
-    # keep original "cause" information for "cause" col is a string name in CoD cause map
+    # keep original "cause" information for
+    # "cause" col is a string name in CoD cause map
     # after mapping to cause ids - (ex code id  103591)
     if source == "USA_NVSS":
         if code_system_id == 1:
             for col in cause_cols:
-                df.loc[~(df[f"{col}"].str.match("(^[A-Z][0-9]{2,4}$)|(^0000$)")),
-                       col] = df[f"{col}_code_original"]
+                df.loc[~(df[f"{col}"].str.match(
+                    "(^[A-Z][0-9]{2,4}$)|(^0000$)")),
+                    col] = df[f"{col}_code_original"]
 
     if inj_garbage:
-        print_log_message("subsetting to only rows with UCOD as injuries garbage codes")
-        package_list = pd.read_excel("/homes/agesak/thesis/maps/package_list.xlsx", sheet_name="mohsen_vetted")
+        print_log_message(
+            "subsetting to only rows with UCOD as injuries garbage codes")
+        package_list = pd.read_excel(
+            "/homes/agesak/thesis/maps/package_list.xlsx",
+            sheet_name="mohsen_vetted")
 
         # get a list of all injuries garbage package names
         inj_packages = package_list.package_name.unique().tolist()
 
         # get the garbage codes associated with these garbage packages
-        garbage_df = engine_room.get_package_list(code_system_or_id=code_system_id, include_garbage_codes=True)
+        garbage_df = engine_room.get_package_list(
+            code_system_or_id=code_system_id, include_garbage_codes=True)
 
         # subset df to only rows with injuries garbage as UCOD
         df = apply_garbage_map(df, garbage_df, inj_packages)
@@ -122,31 +137,38 @@ def run_pipeline(year, source, int_cause, code_system_id, code_map_version_id,
             x.endswith("code_original")))] + [
             f"{int_cause}", f"pII_{int_cause}", f"cause_{int_cause}"]]
 
-        causes = get_most_detailed_inj_causes(int_cause, cause_set_id=4)
-        df = df.loc[(df.cause_id.isin(causes)) | ((df[f"{int_cause}"] == 1) & (df.cause_id == 743))]
+        causes = get_most_detailed_inj_causes(
+            int_cause, cause_set_version_id=cause_set_version_id,
+            **{'block_rerun': True, 'force_rerun': False})
+        df = df.loc[(df.cause_id.isin(causes)) | (
+            (df[f"{int_cause}"] == 1) & (df.cause_id == 743))]
 
         # some edits to cause_cols for BoW
         multiple_cause_cols = [x for x in list(df) if "cause" in x]
         multiple_cause_cols.remove("cause_id")
         df[multiple_cause_cols] = df[multiple_cause_cols].replace(
             "0000", np.NaN).replace("other", np.NaN)
-        df["cause_info"] = df[[x for x in list(df) if "multiple_cause" in x]].fillna(
+        df["cause_info"] = df[[x for x in list(
+            df) if "multiple_cause" in x]].fillna(
             "").astype(str).apply(lambda x: " ".join(x), axis=1)
 
     return df
 
-def apply_garbage_map(df, g_df,inj_packages):
+def apply_garbage_map(df, g_df, inj_packages):
 
-    g_df["garbage_code"] = clean_icd_codes(g_df["garbage_code"], remove_decimal=True)
+    g_df["garbage_code"] = clean_icd_codes(
+        g_df["garbage_code"], remove_decimal=True)
     g_df = g_df.loc[g_df.package_name.isin(inj_packages)]
     garbage_codes = g_df.garbage_code.unique().tolist()
     df["keep"] = 0
     for n in reversed(range(2, 7)):
-        df["keep"] = np.where(df.cause.isin([x[0:n] for x in garbage_codes]), 1, df["keep"])
+        df["keep"] = np.where(df.cause.isin(
+            [x[0:n] for x in garbage_codes]), 1, df["keep"])
 
     df = df.query("keep==1")
 
     return df
+
 
 def write_outputs(df, int_cause, source, nid, extract_type_id, inj_garbage):
     """
@@ -157,23 +179,30 @@ def write_outputs(df, int_cause, source, nid, extract_type_id, inj_garbage):
         limited_dir = get_limited_use_directory(source, int_cause, inj_garbage)
         print_log_message(f"writing {source} to limited use dir")
         print_log_message(limited_dir)
-        df.to_csv(f"{limited_dir}/{nid}_{extract_type_id}_format_map.csv", index=False)
+        df.to_csv(
+            f"{limited_dir}/{nid}_{extract_type_id}_format_map.csv",
+            index=False)
     else:
         if inj_garbage:
-            print_log_message("writing formatted df with only injuries garbage codes as UCOD")
+            print_log_message(
+                "writing formatted df with only injuries garbage codes as UCOD"
+            )
             subdirs = f"{int_cause}/thesis/inj_garbage"
         else:
             subdirs = f"{int_cause}/thesis"
-        print_log_message(f"Writing nid {nid}, extract_type_id {extract_type_id}")
-        write_phase_output(df, "format_map", nid, extract_type_id, ymd_timestamp(),
-                           sub_dirs=subdirs)
+        print_log_message(
+            f"Writing nid {nid}, extract_type_id {extract_type_id}")
+        write_phase_output(df, "format_map", nid, extract_type_id,
+                           ymd_timestamp(), sub_dirs=subdirs)
 
 
 def main(year, source, int_cause, code_system_id, code_map_version_id,
-         cause_set_version_id, nid, extract_type_id, data_type_id, inj_garbage=False):
+         cause_set_version_id, nid, extract_type_id, data_type_id,
+         inj_garbage=False):
     """Run pipeline."""
-    df = run_pipeline(year, source, int_cause, code_system_id, code_map_version_id,
-                      cause_set_version_id, nid, extract_type_id, data_type_id, inj_garbage)
+    df = run_pipeline(year, source, int_cause, code_system_id,
+                      code_map_version_id, cause_set_version_id,
+                      nid, extract_type_id, data_type_id, inj_garbage)
     write_outputs(df, int_cause, source, nid, extract_type_id, inj_garbage)
 
 

@@ -8,7 +8,9 @@ from thesis_utils.model_evaluation import (calculate_cccsmfa,
 
 from sklearn.feature_extraction.text import CountVectorizer
 from xgboost import XGBClassifier
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, BaggingClassifier
+from sklearn.ensemble import (RandomForestClassifier,
+                              GradientBoostingClassifier,
+                              BaggingClassifier)
 from sklearn.naive_bayes import MultinomialNB, BernoulliNB, ComplementNB
 from sklearn.svm import SVC
 from sklearn.pipeline import Pipeline
@@ -50,8 +52,7 @@ def create_custom_scorers(int_cause):
 def transform_measure_cols(df, measure, model_name, params):
     """Change """
     measure_dict = {"int": int, "float": float, "bool": bool}
-    measure_cols = df.loc[df[f"{model_name}_dtype"] ==
-                          measure, f"{model_name}"].unique().tolist()
+    measure_cols = df.loc[df[f"{model_name}_dtype"] == measure, f"{model_name}"].unique().tolist()
     for measure_col in measure_cols:
         params[measure_col] = [measure_dict[measure](params[measure_col])]
 
@@ -119,7 +120,7 @@ def run_pipeline(model, short_name, model_df, model_params,
                "concordance": scorer_list[6]}
 
     gscv = GridSearchCV(pipeline, cv_params, cv=5,
-                        scoring=scoring, n_jobs=3, pre_dispatch=6,
+                        scoring=scoring, n_jobs=2, pre_dispatch=6,
                         refit="concordance", verbose=6)
 
     grid_results = gscv.fit(model_df["cause_info"], model_df["cause_id"])

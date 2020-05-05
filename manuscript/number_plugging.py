@@ -2,37 +2,11 @@
 
 import pandas as pd
 import numpy as np
-from db_queries import get_location_metadata, get_cause_metadata
+from db_queries import get_cause_metadata
 from mcod_prep.utils.mcause_io import get_mcause_data
-from mcod_prep.utils.causes import get_most_detailed_inj_causes
 from thesis_utils.modeling import read_in_data
+from thesis_utils.misc import get_country_names
 
-LOCS = get_location_metadata(gbd_round_id=6, location_set_id=35)
-
-
-def get_country_names(df):
-    """Map all subnationals to country-level
-    Arguments:
-            df: df with location_id column with some subnational level rows
-    Returns:
-        df - most_detailed_id column with most-detailed location id for a given GBD location
-           - location_name column with only country-level location names for all location ids
-    """
-    df = df.merge(
-        LOCS[["location_id", "parent_id", "level"]],
-        on="location_id", how="left")
-    # map subnationals to country
-    df["country_id"] = np.where(
-        df["level"] > 3, df["parent_id"],
-        df["location_id"])
-    df.drop(columns=["parent_id", "level"], inplace=True)
-    df.rename(columns={"country_id": "location_id",
-                       "location_id": "most_detailed_id"}, inplace=True)
-    # get country names
-    df = df.merge(
-        LOCS[["location_id", "location_name"]],
-        on="location_id", how="left")
-    return df
 
 
 # This included XX location-years of data from Mexico,

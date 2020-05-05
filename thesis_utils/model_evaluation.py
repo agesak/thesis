@@ -2,8 +2,10 @@ import pandas as pd
 import numpy as np
 import os
 
+from cod_prep.claude.configurator import Configurator
 from mcod_prep.utils.causes import get_most_detailed_inj_causes
 
+CONF = Configurator('standard')
 
 def calculate_cccsmfa(y_true, y_pred):
     """ Calculate chance-corrected cause-specific mortality fraction accuracy
@@ -37,7 +39,9 @@ def calculate_concordance(y_true, y_pred, int_cause):
     """
 
     # get an array of the most detailed injuries cause_ids in GBD
-    causes = np.array(get_most_detailed_inj_causes(int_cause, cause_set_id=4))
+    causes = np.array(get_most_detailed_inj_causes(int_cause,
+        cause_set_version_id=CONF.get_id('reporting_cause_set_version'),
+        **{'block_rerun': True, 'force_rerun': False}))
 
     for cause in causes:
         # TP+FN - the number of deaths for a cause

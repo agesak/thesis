@@ -44,14 +44,14 @@ for int_cause in ["x59", "y34"]:
 
     # order is learning rate, gamma, max depth, subsample
     summaries = []
-    for learning_rate in [0.02,0.04,0.06,0.1,0.14,0.20,0.25,0.3]:
+    for learning_rate in [0.02, 0.04, 0.06, 0.1, 0.14, 0.20, 0.25, 0.3]:
         # varying gamma, subsample,  max depth 10
-        summary = get_model_summaries(f"{thesis_dir}/{int_cause}/thesis/2020_04_27/xgb/", f"model_{learning_rate}")
+        summary = get_model_summaries(
+            f"{thesis_dir}/{int_cause}/thesis/2020_04_27/xgb/", f"model_{learning_rate}")
         summaries.append(summary)
-
 
     summaries = pd.concat(summaries)
     summaries.columns = [x.replace("param_clf__estimator__", "")
                          for x in list(summaries)]
-    summaries.rename(columns = {"eta":"learning_rate"}, inplace=True)
+    summaries.rename(columns={"eta": "learning_rate"}, inplace=True)
     plot_figure(summaries, int_cause)
