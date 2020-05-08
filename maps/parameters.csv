@@ -1,9 +1,9 @@
 rf,rf_value,rf_dtype,multi_nb,multi_nb_value,multi_nb_dtype,bernoulli_nb,bernoulli_nb_value,bernoulli_nb_dtype,complement_nb,complement_nb_value,complement_nb_dtype,svm,svm_value,svm_dtype,gbt,gbt_value,gbt_dtype,xgb,xgb_value,xgb_dtype,svm_bag,svm_bag_value,svm_bag_dtype
-clf__estimator__n_estimators,"60,70,80,90,100",int,clf__estimator__alpha,"0.0,0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5,0.55,0.6,0.65,0.7,0.75,0.8,0.85,0.95,1.0",float,clf__estimator__alpha,"0.0,0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5,0.55,0.6,0.65,0.7,0.75,0.8,0.85,0.95,1.0",float,clf__estimator__alpha,"0.0,0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5,0.55,0.6,0.65,0.7,0.75,0.8,0.85,0.95,1.0",float,clf__estimator__C,1,float,clf__estimator__n_estimators,"10,50,150,200",int,clf__estimator__eta,"0.02,0.1,0.20,0.3,0.4",float,name__base_estimator__C,1,float
-clf__estimator__max_depth,"200,300,400,500,600,700,800",int,,,,,,,,,,clf__estimator__kernel,linear,str,clf__estimator__learning_rate,"0.02,0.10,0.20",float,clf__estimator__gamma,"0.2,0.5",float,name__base_estimator__kernel,linear,str
+clf__estimator__n_estimators,"60,70,80,90,100",int,clf__estimator__alpha,"0.0,0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5,0.55,0.6,0.65,0.7,0.75,0.8,0.85,0.95,1.0",float,clf__estimator__alpha,"0.05,0.1",float,clf__estimator__alpha,"0.0,0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5,0.55,0.6,0.65,0.7,0.75,0.8,0.85,0.95,1.0",float,clf__estimator__C,1,float,clf__estimator__n_estimators,"10,50,150,200",int,clf__estimator__eta,"0.02,0.1,0.20,0.3,0.4",float,name__base_estimator__C,1,float
+clf__estimator__max_depth,"200,300,400,500,600,000,000",int,,,,,,,,,,clf__estimator__kernel,linear,str,clf__estimator__learning_rate,"0.02,0.10,0.20",float,clf__estimator__gamma,"0.2,0.5",float,name__base_estimator__kernel,linear,str
 clf__estimator__max_features,sqrt,str,,,,,,,,,,clf__estimator__decision_function_shape,ovr,str,clf__estimator__max_depth,"50,100",int,clf__estimator__max_depth,"20,60,100",int,name__base_estimator__decision_function_shape,ovr,str
-clf__estimator__criterion,"gini,entropy",str,,,,,,,,,,clf__estimator__max_iter,"100,10,10000,100000",int,clf__estimator__max_features,sqrt,str,clf__estimator__subsample,"0.6,0.8,1.0",float,name__base_estimator__max_iter,"100,1000,10000,100000",int
+clf__estimator__criterion,"gini,entropy",str,,,,,,,,,,clf__estimator__max_iter,"100,10,10000,100000",int,clf__estimator__max_features,sqrt,str,clf__estimator__subsample,"0.6,0.8,1.0",float,name__base_estimator__max_iter,"100,100,010,000,100,000",int
 ,,,,,,,,,,,,,,,,,,clf__estimator__n_estimators,"50,80,120",int,name__n_estimators,"10,15",int
-,,,,,,,,,,,,,,,,,,,,,name__max_samples,"71331,50000",int
-,,,,,,,,,,,,,,,,,,,,,name__bootstrap_features,True,bool
-,,,,,,,,,,,,,,,,,,,,,name__oob_score,False,bool
+,,,,,,,,,,,,,,,,,,,,,name__max_samples,"7,133,150,000",int
+,,,,,,,,,,,,,,,,,,,,,name__bootstrap_features,TRUE,bool
+,,,,,,,,,,,,,,,,,,,,,name__oob_score,FALSE,bool

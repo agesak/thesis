@@ -8,6 +8,11 @@ from db_queries import get_location_metadata
 LOCS = get_location_metadata(gbd_round_id=6, location_set_id=35)
 
 
+def chunks(list_arg, n):
+    n = max(1, n)
+    return (list_arg[i:i + n] for i in range(0, len(list_arg), n))
+
+
 def str2bool(v):
     """https://stackoverflow.com/questions/15008758/parsing-boolean-values-with-argparse"""
     if isinstance(v, bool):
@@ -25,6 +30,7 @@ def remove_if_output_exists(file_dir, file):
     filepath = os.path.join(file_dir, file)
     if os.path.exists(filepath):
         os.unlink(filepath)
+
 
 def get_country_names(df):
     """Map all subnationals to country-level

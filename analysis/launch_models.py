@@ -6,9 +6,9 @@ from importlib import import_module
 
 from cod_prep.utils.misc import print_log_message
 from cod_prep.claude.claude_io import makedirs_safely
-from cod_prep.downloaders import create_age_bins
+# from cod_prep.downloaders import create_age_bins
 from mcod_prep.utils.mcod_cluster_tools import submit_mcod
-from thesis_utils.misc import str2bool, remove_if_output_exists
+from thesis_utils.misc import str2bool, remove_if_output_exists, chunks
 from thesis_utils.modeling import (read_in_data, create_train_test,
                                    naive_bayes_params,
                                    format_argparse_params)
@@ -34,7 +34,6 @@ class ModelLauncher():
                   "svm_bag": 8,
                   "gbt": 4,
                   "xgb": 5}
-                  # i think this will work for x59, unsure about y34
     memory_dict = {"rf": 40,
                    "multi_nb": 8,
                    "bernoulli_nb": 6,
@@ -64,6 +63,7 @@ class ModelLauncher():
         self.int_cause = self.run_filters["int_cause"]
         self.model_types = self.run_filters["model_type"]
         self.code_system_id = self.run_filters["code_system_id"]
+        self.age_feature = self.run_filters["age_feature"]
         if self.run_filters["description"] is None:
             self.description = "{:%Y_%m_%d}".format(datetime.datetime.now())
             if self.test:
@@ -77,10 +77,6 @@ class ModelLauncher():
     def create_training_data(self):
         makedirs_safely(self.model_dir)
         df = read_in_data(self.int_cause, self.code_system_id)
-        df = create_age_bins(df, [39, 24, 224, 229, 47, 268, 294])
-        for age_group in df.age_group_id.unique():
-            
-
         train_df, test_df, int_cause_df = create_train_test(
             df, test=self.test, int_cause=self.int_cause)
         print_log_message("writing train/test to df")
@@ -88,19 +84,15 @@ class ModelLauncher():
         test_df.to_csv(f"{self.model_dir}/test_df.csv", index=False)
         int_cause_df.to_csv(f"{self.model_dir}/int_cause_df.csv", index=False)
 
-    def chunks(l, n):
-        n = max(1, n)
-        return (l[i:i + n] for i in range(0, len(l), n))
-
     def launch_create_testing_datasets(self):
 
         worker = f"/homes/agesak/thesis/analysis/create_test_datasets.py"
         makedirs_safely(self.dataset_dir)
 
         # if ModelLauncher.num_datasets == 10:
-        #     numbers = (list(ModelLauncher.chunks(range(1, 11), 10)))
+        #     numbers = (list(chunks(range(1, 11), 10)))
         if ModelLauncher.num_datasets == 500:
-            numbers = (list(ModelLauncher.chunks(range(1, 501), 125)))
+            numbers = (list(chunks(range(1, 501), 125)))
             dataset_dict = dict(zip(range(0, len(numbers)), numbers))
             holds_dict = {key: [] for key in dataset_dict.keys()}
             for batch in dataset_dict.keys():
@@ -138,9 +130,9 @@ class ModelLauncher():
         worker = f"/homes/agesak/thesis/analysis/run_testing_predictions.py"
 
         # if ModelLauncher.num_datasets == 10:
-        #     numbers = (list(ModelLauncher.chunks(range(1, 11), 5)))
+        #     numbers = (list(chunks(range(1, 11), 5)))
         if ModelLauncher.num_datasets == 500:
-            numbers = (list(ModelLauncher.chunks(range(1, 501), 125)))
+            numbers = (list(chunks(range(1, 501), 125)))
             dataset_dict = dict(zip(range(0, len(numbers)), numbers))
             holds_dict = {key: [] for key in dataset_dict.keys()}
             for batch in dataset_dict.keys():
@@ -148,11 +140,14 @@ class ModelLauncher():
                 hold_ids = []
                 for dataset_num in datasets:
                     remove_if_output_exists(
-                        testing_model_dir, f"dataset_{dataset_num}_summary_stats.csv")
+                        testing_model_dir,
+                        f"dataset_{dataset_num}_summary_stats.csv")
                     remove_if_output_exists(
-                        testing_model_dir, f"dataset_{dataset_num}_predictions.csv")
-                    params = [best_model_dir, self.dataset_dir, testing_model_dir,
-                              best_model_params, self.int_cause, dataset_num]
+                        testing_model_dir,
+                        f"dataset_{dataset_num}_predictions.csv")
+                    params = [best_model_dir, self.dataset_dir,
+                              testing_model_dir, best_model_params,
+                              self.int_cause, dataset_num]
                     jobname = f"{model_name}_{self.int_cause}_predictions_dataset_{dataset_num}_{best_model_params}"
                     jid = submit_mcod(jobname, "python", worker,
                                       cores=3, memory="25G",
@@ -173,7 +168,8 @@ class ModelLauncher():
         remove_if_output_exists(write_dir, "summary_stats.csv")
 
         params = [write_dir, self.model_dir, model_param,
-                  model_name, short_name, self.int_cause]
+                  model_name, short_name, self.int_cause,
+                  self.age_feature]
         jobname = f"{short_name}_{self.int_cause}_{model_param}"
         worker = f"/homes/agesak/thesis/analysis/run_models.py"
         submit_mcod(jobname, "python", worker, cores=4,
@@ -199,9 +195,6 @@ class ModelLauncher():
                 print_log_message(
                     f"{len(params)} sets of model parameters")
                 for parameter in params:
-                    print(parameter)
-                    print(len(parameter))
-                    print(ModelLauncher.param_dict[short_name])
                     param = format_argparse_params(
                         parameter, ModelLauncher.param_dict[short_name])
                     self.launch_training_models(model_name, short_name, param)
@@ -236,13 +229,15 @@ if __name__ == "__main__":
     parser.add_argument(
         "--phase", help="", required=True,
         choices=["train_test", "create_test_datasets",
-        "launch_training_model", "launch_testing_models",
+                 "launch_training_model", "launch_testing_models",
                  "launch_int_cause_predictions"])
     parser.add_argument("--test", type=str2bool, nargs="?",
                         const=True, default=False)
     parser.add_argument(
         "--int_cause", help="either x59 or y34", required=True,
         choices=["x59", "y34"])
+    parser.add_argument("--age_feature", type=str2bool, nargs="?",
+                        const=True, default=False)
     # not required for train_test/create_test_datasets
     parser.add_argument(
         "--model_type", help="short-hand name for ML classifier",

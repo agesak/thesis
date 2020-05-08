@@ -4,9 +4,10 @@ from sklearn.externals import joblib
 
 from cod_prep.utils.misc import print_log_message
 from thesis_utils.grid_search import run_pipeline, format_gridsearch_params
+from thesis_utils.misc import str2bool
 
 
-def main(model_param, model_name, write_dir, train_dir, int_cause, short_name):
+def main(model_param, model_name, write_dir, train_dir, int_cause, short_name, age_feature):
 
     model_df = pd.read_csv(
         f"{train_dir}/train_df.csv")[
@@ -30,6 +31,7 @@ if __name__ == '__main__':
     model_name = str(sys.argv[4])
     short_name = str(sys.argv[5])
     int_cause = str(sys.argv[6])
+    age_feature = str2bool(sys.argv[7])
 
     print(write_dir)
     print(train_dir)
@@ -37,4 +39,6 @@ if __name__ == '__main__':
     print(model_name)
     print(short_name)
     print(int_cause)
-    main(model_param, model_name, write_dir, train_dir, int_cause, short_name)
+    print(age_feature)
+    print(type(age_feature))
+    main(model_param, model_name, write_dir, train_dir, int_cause, short_name, age_feature)

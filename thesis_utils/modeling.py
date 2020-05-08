@@ -8,6 +8,7 @@ from sklearn.model_selection import train_test_split
 from mcod_prep.utils.mcause_io import get_mcause_data
 from mcod_prep.utils.nids import get_datasets
 from cod_prep.utils.misc import print_log_message
+from cod_prep.downloaders import create_age_bins
 from db_queries import get_location_metadata
 from thesis_utils.directories import get_limited_use_directory
 from thesis_data_prep.launch_mcod_mapping import MCauseLauncher
@@ -15,12 +16,14 @@ from thesis_data_prep.launch_mcod_mapping import MCauseLauncher
 BLOCK_RERUN = {"block_rerun": False, "force_rerun": True}
 DEM_COLS = ["cause_id", "location_id", "sex_id", "year_id", "age_group_id"]
 
+
 def read_in_data(int_cause, inj_garbage=False, code_system_id=None):
     """Read in and append all MCoD data"""
     # col, zaf, and ita dont have icd 9
     print_log_message("reading in not limited use data")
     if inj_garbage:
-        print_log_message("writing formatted df with only nonX59/Y34 garbage codes as UCOD")
+        print_log_message(
+            "writing formatted df with only nonX59/Y34 garbage codes as UCOD")
         subdirs = f"{int_cause}/thesis/inj_garbage"
     else:
         subdirs = f"{int_cause}/thesis"
@@ -58,42 +61,48 @@ def read_in_data(int_cause, inj_garbage=False, code_system_id=None):
     return df
 
 
-def create_train_test(df, test, int_cause, age_group_0d):
+def create_train_test(df, test, int_cause):
     """Create train/test datasets, if running tests,
     randomly sample from all locations so models don't take forever to run"""
-
     locs = get_location_metadata(gbd_round_id=6, location_set_id=35)
+
+    keep_cols = DEM_COLS + ["cause_info", f"{int_cause}", "cause_age_info"] + [
+        x for x in list(df) if "multiple_cause" in x]
+
+    df = df.loc[(df.age_group_id != 283) & (df.age_group_id != 160)]
+    df["cause_age_info"] = df[["cause_info", "age_group_id"]].astype(
+        str).apply(lambda x: " ".join(x), axis=1)
+    df = df[keep_cols]
+    df = create_age_bins(df, [39, 24, 224, 229, 47, 268, 294])
 
     garbage_df = df.query(f"cause_id==743 & {int_cause}==1")
     df = df.query(f"cause_id!=743 & {int_cause}!=1")
 
-    keep_cols = DEM_COLS + ["cause_info", f"{int_cause}"] + [x for x in list(df) if "multiple_cause" in x]
-
-    # if test:
-    #     print_log_message(
-    #         "THIS IS A TEST.. only using 5000 rows from each loc")
-    #     df = df.merge(
-    #         locs[["location_id", "parent_id", "level"]],
-    #         on="location_id", how="left")
-    #     # map subnationals to parent so
-    #     # random sampling will be at country level
-    #     df["location_id"] = np.where(
-    #         df["level"] > 3, df["parent_id"],
-    #         df["location_id"])
-    #     df.drop(columns=["parent_id", "level"], inplace=True)
-    #     # get a random sample from each location
-    #     # bc full dataset takes forever to run
-    #     dfs = []
-    #     for loc in list(df.location_id.unique()):
-    #         subdf = df.query(f"location_id=={loc}")
-    #         random_df = subdf.sample(n=7000, replace=False)
-    #         dfs.append(random_df)
-    #     df = pd.concat(dfs, ignore_index=True, sort=True)
+    if test:
+        print_log_message(
+            "THIS IS A TEST.. only using 5000 rows from each loc")
+        df = df.merge(
+            locs[["location_id", "parent_id", "level"]],
+            on="location_id", how="left")
+        # map subnationals to parent so
+        # random sampling will be at country level
+        df["location_id"] = np.where(
+            df["level"] > 3, df["parent_id"],
+            df["location_id"])
+        df.drop(columns=["parent_id", "level"], inplace=True)
+        # get a random sample from each location
+        # bc full dataset takes forever to run
+        dfs = []
+        for loc in list(df.location_id.unique()):
+            subdf = df.query(f"location_id=={loc}")
+            random_df = subdf.sample(n=7000, replace=False)
+            dfs.append(random_df)
+        df = pd.concat(dfs, ignore_index=True, sort=True)
 
     # split train 75%, test 25%
     train_df, test_df = train_test_split(df, test_size=0.25)
 
-    return train_df[DEM_COLS + ["cause_info", f"{int_cause}"]], test_df[keep_cols], garbage_df[keep_cols]
+    return train_df, test_df, garbage_df
 
 
 def rf_params(model):
@@ -154,6 +163,7 @@ def svm_params(model):
         clf__estimator__C, clf__estimator__kernel, clf__estimator__decision_function_shape, clf__estimator__max_iter)]
     return params
 
+
 def svm_bag_params(model):
     assert model == "svm_bag", "wrong model type"
     df = pd.read_csv("/homes/agesak/thesis/maps/parameters.csv")
@@ -181,10 +191,11 @@ def svm_bag_params(model):
     name__oob_score = df.loc[df[
         f"{model}"] == "name__oob_score",
         f"{model}_value"].str.split(",")[7]
-    keys = "name__base_estimator__C", "name__base_estimator__kernel", "name__base_estimator__decision_function_shape", "name__base_estimator__max_iter",  "name__n_estimators", "name__max_samples", "name__bootstrap_features", "name__oob_score"
+    keys = "name__base_estimator__C", "name__base_estimator__kernel", "name__base_estimator__decision_function_shape", "name__base_estimator__max_iter", "name__n_estimators", "name__max_samples", "name__bootstrap_features", "name__oob_score"
     params = [dict(zip(keys, combo)) for combo in itertools.product(
         name__base_estimator__C, name__base_estimator__kernel, name__base_estimator__decision_function_shape, name__base_estimator__max_iter, name__n_estimators, name__max_samples, name__bootstrap_features, name__oob_score)]
     return params
+
 
 def gbt_params(model):
     assert model == "gbt", "wrong model type"
@@ -206,6 +217,7 @@ def gbt_params(model):
         clf__estimator__n_estimators, clf__estimator__learning_rate, clf__estimator__max_depth, clf__estimator__max_features)]
     return params
 
+
 def xgb_params(model):
     assert model == "xgb", "wrong model type"
     df = pd.read_csv("/homes/agesak/thesis/maps/parameters.csv")
@@ -223,7 +235,7 @@ def xgb_params(model):
         f"{model}_value"].str.split(",")[3]
     clf__estimator__n_estimators = df.loc[df[
         f"{model}"] == "clf__estimator__n_estimators",
-        f"{model}_value"].str.split(",")[4]    
+        f"{model}_value"].str.split(",")[4]
     keys = "clf__estimator__eta", "clf__estimator__gamma", "clf__estimator__max_depth", "clf__estimator__subsample", "clf__estimator__n_estimators"
     params = [dict(zip(keys, combo)) for combo in itertools.product(
         clf__estimator__eta, clf__estimator__gamma, clf__estimator__max_depth, clf__estimator__subsample, clf__estimator__n_estimators)]
