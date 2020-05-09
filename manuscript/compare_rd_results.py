@@ -67,7 +67,7 @@ def choose_best_naive_bayes(int_cause):
     multi_df = pd.read_csv(f"/ihme/cod/prep/mcod/process_data/{int_cause}/thesis/sample_dirichlet/{date}/multi_nb/model_metrics_summary.csv")
     multi_df.rename(columns= lambda x: x + '_multi_nb' if x not in ['Evaluation metrics'] else x, inplace=True)
 
-    complement_df = pd.read_csv(f"/ihme/cod/prep/mcod/process_data/{int_cause}/thesis/sample_dirichlet/{da}/complement_nb/model_metrics_summary.csv")
+    complement_df = pd.read_csv(f"/ihme/cod/prep/mcod/process_data/{int_cause}/thesis/sample_dirichlet/{date}/complement_nb/model_metrics_summary.csv")
     complement_df.rename(columns= lambda x: x + '_complement_nb'  if x not in ['Evaluation metrics'] else x, inplace=True)
 
     bernoulli_df = pd.read_csv(f"/ihme/cod/prep/mcod/process_data/{int_cause}/thesis/sample_dirichlet/{date}/bernoulli_nb/model_metrics_summary.csv")
@@ -75,7 +75,7 @@ def choose_best_naive_bayes(int_cause):
 
     df = reduce(lambda left,right: pd.merge(left,right,on=['Evaluation metrics'],
                                                 how='outer'), [multi_df, complement_df, bernoulli_df])
-    df.to_csv(f"/home/j/temp/agesak/thesis/model_results/test_set_summaries/{int_cause}_naivebayes_summary.csv", index=False)
+    df.to_csv(f"/home/j/temp/agesak/thesis/model_results/test_set_summaries/{date}_{int_cause}_naivebayes_summary.csv", index=False)
 
     best_model = df[[x for x in list(df) if "Mean" in x]].idxmax(axis=1).iloc[0]
 

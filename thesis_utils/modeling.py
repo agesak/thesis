@@ -15,6 +15,7 @@ from db_queries import get_location_metadata
 from thesis_utils.directories import get_limited_use_directory
 from thesis_data_prep.launch_mcod_mapping import MCauseLauncher
 
+AGG_AGES = [39, 24, 224, 229, 47, 268, 294]
 BLOCK_RERUN = {"block_rerun": False, "force_rerun": True}
 DEM_COLS = ["cause_id", "location_id", "sex_id", "year_id", "age_group_id"]
 CONF = Configurator('standard')
@@ -95,7 +96,7 @@ def drop_age_restricted_cols(df):
 
     return df
 
-def create_train_test(df, test, int_cause):
+def create_train_test(df, test, int_cause, age_group_id):
     """Create train/test datasets, if running tests,
     randomly sample from all locations so models don't take forever to run"""
     locs = get_location_metadata(gbd_round_id=6, location_set_id=35)
@@ -105,8 +106,12 @@ def create_train_test(df, test, int_cause):
 
     df = df.loc[(df.age_group_id != 283) & (df.age_group_id != 160)]
     df = df[keep_cols]
-    df = create_age_bins(df, [39, 24, 224, 229, 47, 268, 294])
+    df = create_age_bins(df, AGG_AGES)
     df = drop_age_restricted_cols(df)
+    if age_group_id:
+        print_log_message(f"subsetting to just age group id {age_group_id}")
+        df = df.loc[df["age_group_id"] == age_group_id]
+        print_log_message(f"resulting df is {len(df)} rows")
     df["cause_age_info"] = df[["cause_info", "age_group_id"]].astype(
         str).apply(lambda x: " ".join(x), axis=1)
 
