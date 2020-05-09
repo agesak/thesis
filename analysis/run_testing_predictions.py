@@ -3,13 +3,18 @@ import pandas as pd
 import sys
 from thesis_utils.model_evaluation import (calculate_cccsmfa,
                                            calculate_concordance)
+from thesis_utils.misc import str2bool
 
 from sklearn.externals import joblib
 from sklearn.metrics import precision_score, recall_score, accuracy_score
 
 
-def main(best_model_dir, dataset_dir, testing_model_dir, best_model_params, int_cause, dataset_num):
+def main(best_model_dir, dataset_dir, testing_model_dir, best_model_params, int_cause, dataset_num, age_feature):
 
+    if age_feature:
+        x_col = "cause_age_info"
+    else:
+        x_col = "cause_info"
     # read in model object of best model
     grid_results = joblib.load(f"{best_model_dir}/grid_results.pkl")
 
@@ -17,7 +22,7 @@ def main(best_model_dir, dataset_dir, testing_model_dir, best_model_params, int_
     dataset = pd.read_csv(f"{dataset_dir}/dataset_{dataset_num}.csv")
 
     # predit on test dataset
-    dataset["predicted"] = grid_results.predict(dataset["cause_info"])
+    dataset["predicted"] = grid_results.predict(dataset[f"{x_col}"])
 
     macro_precision = precision_score(y_true=dataset.cause_id,
                                       y_pred=dataset.predicted, average="macro")
@@ -60,6 +65,7 @@ if __name__ == '__main__':
     best_model_params = str(sys.argv[4])
     int_cause = str(sys.argv[5])
     dataset_num = int(sys.argv[6])
+    age_feature = str2bool(sys.argv[7])
 
     print(best_model_dir)
     print(dataset_dir)
@@ -67,6 +73,7 @@ if __name__ == '__main__':
     print(best_model_params)
     print(int_cause)
     print(dataset_num)
+    print(age_feature)
 
     main(best_model_dir, dataset_dir, testing_model_dir,
-         best_model_params, int_cause, dataset_num)
+         best_model_params, int_cause, dataset_num, age_feature)

@@ -8,13 +8,16 @@ from sklearn.model_selection import train_test_split
 from mcod_prep.utils.mcause_io import get_mcause_data
 from mcod_prep.utils.nids import get_datasets
 from cod_prep.utils.misc import print_log_message
-from cod_prep.downloaders import create_age_bins
+from cod_prep.downloaders import (get_ages, add_age_metadata, create_age_bins,
+    add_cause_metadata, get_current_cause_hierarchy)
+from cod_prep.claude.configurator import Configurator
 from db_queries import get_location_metadata
 from thesis_utils.directories import get_limited_use_directory
 from thesis_data_prep.launch_mcod_mapping import MCauseLauncher
 
 BLOCK_RERUN = {"block_rerun": False, "force_rerun": True}
 DEM_COLS = ["cause_id", "location_id", "sex_id", "year_id", "age_group_id"]
+CONF = Configurator('standard')
 
 
 def read_in_data(int_cause, inj_garbage=False, code_system_id=None):
@@ -61,19 +64,51 @@ def read_in_data(int_cause, inj_garbage=False, code_system_id=None):
     return df
 
 
+def drop_age_restricted_cols(df):
+    start = len(df)
+    age_meta_df = get_ages(force_rerun=False, block_rerun=True)
+    # secret causes in restrictions
+    cause_meta_df = get_current_cause_hierarchy(cause_set_id=4,
+            **{'block_rerun': True, 'force_rerun': False})
+    injuries_restrictions = pd.read_csv("/homes/agesak/thesis/maps/injuries_overrides.csv")
+    injuries_restrictions = add_cause_metadata(injuries_restrictions, add_cols='cause_id', merge_col='acause',
+                            cause_meta_df=cause_meta_df)
+    injuries_restrictions["age_start_group"] = injuries_restrictions["age_start_group"].fillna(0)
+
+
+    orig_cols = df.columns
+    df = add_age_metadata(
+        df, add_cols=['age_group_years_start', 'age_group_years_end'],
+        age_meta_df=age_meta_df
+    )
+
+    df = df.merge(injuries_restrictions, on='cause_id', how='left')
+
+    # age_group_years_end is weird, 0-14 means age_group_years_end 15
+    too_young = df["age_group_years_end"] <= df["age_start_group"]
+    too_old = df["age_group_years_start"] > df["age_end_group"]
+
+    df = df[~(too_young | too_old)]
+    df = df[orig_cols]
+    end = len(df)
+    print_log_message(f"dropping {start - end} cols that violate age restrictions")
+
+    return df
+
 def create_train_test(df, test, int_cause):
     """Create train/test datasets, if running tests,
     randomly sample from all locations so models don't take forever to run"""
     locs = get_location_metadata(gbd_round_id=6, location_set_id=35)
 
-    keep_cols = DEM_COLS + ["cause_info", f"{int_cause}", "cause_age_info"] + [
+    keep_cols = DEM_COLS + ["cause_info", f"{int_cause}"] + [
         x for x in list(df) if "multiple_cause" in x]
 
     df = df.loc[(df.age_group_id != 283) & (df.age_group_id != 160)]
-    df["cause_age_info"] = df[["cause_info", "age_group_id"]].astype(
-        str).apply(lambda x: " ".join(x), axis=1)
     df = df[keep_cols]
     df = create_age_bins(df, [39, 24, 224, 229, 47, 268, 294])
+    df = drop_age_restricted_cols(df)
+    df["cause_age_info"] = df[["cause_info", "age_group_id"]].astype(
+        str).apply(lambda x: " ".join(x), axis=1)
 
     garbage_df = df.query(f"cause_id==743 & {int_cause}==1")
     df = df.query(f"cause_id!=743 & {int_cause}!=1")
@@ -152,15 +187,15 @@ def svm_params(model):
     clf__estimator__decision_function_shape = df.loc[df[
         f"{model}"] == "clf__estimator__decision_function_shape",
         f"{model}_value"].str.split(",")[2]
-    # clf__estimator__gamma = df.loc[df[
-    #     f"{model}"] == "clf__estimator__gamma",
-    #     f"{model}_value"].str.split(",")[3]
+    clf__estimator__gamma = df.loc[df[
+        f"{model}"] == "clf__estimator__gamma",
+        f"{model}_value"].str.split(",")[3]
     clf__estimator__max_iter = df.loc[df[
         f"{model}"] == "clf__estimator__max_iter",
-        f"{model}_value"].str.split(",")[3]
-    keys = "clf__estimator__C", "clf__estimator__kernel", "clf__estimator__decision_function_shape", "clf__estimator__max_iter"
+        f"{model}_value"].str.split(",")[4]
+    keys = "clf__estimator__C", "clf__estimator__kernel", "clf__estimator__decision_function_shape", "clf__estimator__gamma", "clf__estimator__max_iter"
     params = [dict(zip(keys, combo)) for combo in itertools.product(
-        clf__estimator__C, clf__estimator__kernel, clf__estimator__decision_function_shape, clf__estimator__max_iter)]
+        clf__estimator__C, clf__estimator__kernel, clf__estimator__decision_function_shape, clf__estimator__gamma, clf__estimator__max_iter)]
     return params
 
 

@@ -6,18 +6,17 @@ from db_queries import get_location_metadata, get_cause_metadata
 from cod_prep.downloaders import pretty_print, create_age_bins
 from thesis_utils.misc import get_country_names
 
+date = "2020_05_07"
 
 def format_classifier_results(int_cause, short_name):
 
     # just a test while I figure things out
     df = pd.read_csv(
-        f"/ihme/cod/prep/mcod/process_data/{int_cause}/thesis/sample_dirichlet/2020_05_03/{short_name}/model_predictions.csv")
+        f"/ihme/cod/prep/mcod/process_data/{int_cause}/thesis/sample_dirichlet/{date}/{short_name}/model_predictions.csv")
 
     df = get_country_names(df)
     df.drop(columns=["location_name", "Unnamed: 0", "cause_id"], inplace=True)
     df.rename(columns={"predictions": "cause_id"}, inplace=True)
-    df = df.loc[(df.age_group_id != 283) & (df.age_group_id != 160)]
-    df = create_age_bins(df, [39, 24, 224, 229, 47, 268, 294])
     df = df.groupby(["age_group_id", "sex_id", "location_id",
                      "year_id", "cause_id"], as_index=False)[f"{int_cause}"].sum()
     df["prop"] = df.groupby(["age_group_id", "sex_id", "location_id", "year_id"], as_index=False)[
@@ -65,13 +64,13 @@ def format_gbd_results(int_cause):
 
 def choose_best_naive_bayes(int_cause):
 
-    multi_df = pd.read_csv(f"/ihme/cod/prep/mcod/process_data/{int_cause}/thesis/sample_dirichlet/2020_05_03/multi_nb/model_metrics_summary.csv")
+    multi_df = pd.read_csv(f"/ihme/cod/prep/mcod/process_data/{int_cause}/thesis/sample_dirichlet/{date}/multi_nb/model_metrics_summary.csv")
     multi_df.rename(columns= lambda x: x + '_multi_nb' if x not in ['Evaluation metrics'] else x, inplace=True)
 
-    complement_df = pd.read_csv(f"/ihme/cod/prep/mcod/process_data/{int_cause}/thesis/sample_dirichlet/2020_05_03/complement_nb/model_metrics_summary.csv")
+    complement_df = pd.read_csv(f"/ihme/cod/prep/mcod/process_data/{int_cause}/thesis/sample_dirichlet/{da}/complement_nb/model_metrics_summary.csv")
     complement_df.rename(columns= lambda x: x + '_complement_nb'  if x not in ['Evaluation metrics'] else x, inplace=True)
 
-    bernoulli_df = pd.read_csv(f"/ihme/cod/prep/mcod/process_data/{int_cause}/thesis/sample_dirichlet/2020_05_03/bernoulli_nb/model_metrics_summary.csv")
+    bernoulli_df = pd.read_csv(f"/ihme/cod/prep/mcod/process_data/{int_cause}/thesis/sample_dirichlet/{date}/bernoulli_nb/model_metrics_summary.csv")
     bernoulli_df.rename(columns= lambda x: x + '_bernoulli_nb'  if x not in ['Evaluation metrics'] else x, inplace=True)
 
     df = reduce(lambda left,right: pd.merge(left,right,on=['Evaluation metrics'],
@@ -97,6 +96,6 @@ for int_cause in ["x59", "y34"]:
     df = format_classifier_results(int_cause, short_name)
     rd = format_gbd_results(int_cause)
     rd.to_csv(
-        f"/home/j/temp/agesak/thesis/model_results/{int_cause}_{short_name}_rd.csv", index=False)
+        f"/home/j/temp/agesak/thesis/model_results/{date}_{int_cause}_{short_name}_rd.csv", index=False)
     df.to_csv(
-        f"/home/j/temp/agesak/thesis/model_results/{int_cause}_{short_name}_predictions.csv", index=False)
+        f"/home/j/temp/agesak/thesis/model_results/{date}_{int_cause}_{short_name}_predictions.csv", index=False)

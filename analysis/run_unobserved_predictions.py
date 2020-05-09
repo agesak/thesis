@@ -3,6 +3,8 @@ import sys
 import os
 import six
 
+from thesis_utils.misc import str2bool
+
 from sklearn.externals import joblib
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
@@ -23,7 +25,6 @@ def read_in_summary_stats(model_path):
 
 def aggregate_evaluation_metrics(summaries, testing_dir):
 
-    # FIX NEW METRICS
     """Generate mean, median, max, and min for evaluation metrics across 500 test datasets"""
     metric_cols = [x for x in list(summaries) if x != "best_model_params"]
     # summarize evaluation metrics across the datasets
@@ -41,11 +42,16 @@ def aggregate_evaluation_metrics(summaries, testing_dir):
     summary_df.to_csv(f"{testing_dir}/model_metrics_summary.csv", index=False)
 
 
-def main(data_dir, predicted_test_dir, int_cause, short_name, model_name):
+def main(data_dir, predicted_test_dir, int_cause, short_name, model_name, age_feature):
     # read in predictions from 500 test datasets
     # aggregate the evaluation metrics from each of the 500
     # refit model on all the observed data
     # predict on the x59/y34 data
+
+    if age_feature:
+        x_col = "cause_age_info"
+    else:
+        x_col = "cause_info"
 
     summaries = read_in_summary_stats(predicted_test_dir)
 
@@ -54,9 +60,9 @@ def main(data_dir, predicted_test_dir, int_cause, short_name, model_name):
 
     # read in test and train df
     test_df = pd.read_csv(
-        f"{data_dir}/test_df.csv")[DEM_COLS + ["cause_id", "cause_info", f"{int_cause}"]]
+        f"{data_dir}/test_df.csv")[DEM_COLS + ["cause_id", f"{x_col}", f"{int_cause}"]]
     train_df = pd.read_csv(
-        f"{data_dir}/test_df.csv")[DEM_COLS + ["cause_id", "cause_info", f"{int_cause}"]]
+        f"{data_dir}/test_df.csv")[DEM_COLS + ["cause_id",  f"{x_col}", f"{int_cause}"]]
     print("read in train and test")
     df = pd.concat([train_df, test_df], sort=True, ignore_index=True)
 
@@ -90,16 +96,17 @@ def main(data_dir, predicted_test_dir, int_cause, short_name, model_name):
         param_kwargs[key] = measure_dict[dtype](param_kwargs[key])
 
     # do the refit
-    cv = CountVectorizer()
-    tf = cv.fit_transform(df["cause_info"])
+    cv = CountVectorizer(lowercase=False)
+    tf = cv.fit_transform(df[f"{x_col}"])
     model_fit = eval(model_name)(**param_kwargs).fit(tf, df["cause_id"])
 
     # now predict on the unobserved data
     print("reading in unobserved_df")
+
     unobserved_df = pd.read_csv(
-        f"{data_dir}/int_cause_df.csv")[DEM_COLS + ["cause_id", "cause_info", f"{int_cause}"]]
+        f"{data_dir}/int_cause_df.csv")[DEM_COLS + ["cause_id", f"{x_col}", f"{int_cause}", ]]
     # need to remember explicitly what this does
-    new_counts = cv.transform(unobserved_df["cause_info"])
+    new_counts = cv.transform(unobserved_df[f"{x_col}"])
     unobserved_df["predictions"] = model_fit.predict(new_counts)
 
     # do I wanna save anything else about this?
@@ -118,7 +125,9 @@ if __name__ == '__main__':
     int_cause = str(sys.argv[3])
     short_name = str(sys.argv[4])
     model_name = str(sys.argv[5])
+    age_feature = str2bool(sys.argv[6])
+
     print(data_dir)
     print(predicted_test_dir)
 
-    main(data_dir, predicted_test_dir, int_cause, short_name, model_name)
+    main(data_dir, predicted_test_dir, int_cause, short_name, model_name, age_feature)

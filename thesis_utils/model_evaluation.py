@@ -106,18 +106,22 @@ def format_best_fit_params(best_fit, model_name):
 
     return best_model_params
 
-def format_for_bow(df):
+def format_for_bow(df, age_feature):
+    keep_cols = ["cause_id", "cause_info"]
     multiple_cause_cols = [x for x in list(df) if "cause" in x]
     multiple_cause_cols.remove("cause_id")
-    # maybe try "" here
     df["cause_info"] = df[[x for x in list(
         df) if "multiple_cause" in x]].fillna(
         "").astype(str).apply(lambda x: " ".join(x), axis=1)
-    df = df[["cause_id", "cause_info"]]
+    if age_feature:
+        df["cause_age_info"] = df[["cause_info", "age_group_id"]].astype(
+        str).apply(lambda x: " ".join(x), axis=1)
+        keep_cols += ["cause_age_info"]
+    df = df[keep_cols]
     return df
 
 
-def generate_multiple_cause_rows(sample_df, test_df, cause):
+def generate_multiple_cause_rows(sample_df, test_df, cause, age_feature):
     """
     Arguments:
         sample_df: cause-specific df with number of rows equal to
@@ -129,16 +133,19 @@ def generate_multiple_cause_rows(sample_df, test_df, cause):
     """
 
     # get single "cause_info" column
-    test_df = format_for_bow(test_df)
+    if age_feature:
+        x_col = "cause_age_info"
+    else:
+        x_col = "cause_info"
+    test_df = format_for_bow(test_df, age_feature)
 
     # subset to only cause-specific rows in test df
     cause_df = test_df.loc[test_df.cause_id == cause]
     # drop any na rows
-    print(len(cause_df))
     assert len(cause_df) != 0, "subsetting test df failed in creating 500 datasets"
     # assign chain causes by randomly sampling (with replacement) rows of cause-specific test df
     print("about to sample test df")
-    sample_df = cause_df[["cause_info"]].sample(
+    sample_df = cause_df[[f"{x_col}"]].sample(
         len(sample_df), replace=True).reset_index(drop=True)
     print("finished sampling")
     sample_df["cause_id"] = cause

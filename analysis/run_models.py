@@ -9,16 +9,21 @@ from thesis_utils.misc import str2bool
 
 def main(model_param, model_name, write_dir, train_dir, int_cause, short_name, age_feature):
 
+    print_log_message("reading in data")
     model_df = pd.read_csv(
-        f"{train_dir}/train_df.csv")[
-        ["cause_id", "cause_info", f"{int_cause}"]]
+        f"{train_dir}/train_df.csv", dtype={"cause_id": int, "cause_info": str,
+                                            f"{int_cause}": int,
+                                            "cause_age_info": str})[["cause_id",
+                                                                     "cause_info",
+                                                                     f"{int_cause}",
+                                                                     "cause_age_info"]]
     print_log_message("formatting parameters")
     model_params = format_gridsearch_params(short_name, model_param)
 
     print_log_message("running pipeline")
     results, grid_results = run_pipeline(model_name, short_name,
                                          model_df, model_params,
-                                         write_dir, int_cause)
+                                         write_dir, int_cause, age_feature)
     results.to_csv(f"{write_dir}/summary_stats.csv", index=False)
     joblib.dump(grid_results, f"{write_dir}/grid_results.pkl")
 
@@ -41,4 +46,5 @@ if __name__ == '__main__':
     print(int_cause)
     print(age_feature)
     print(type(age_feature))
-    main(model_param, model_name, write_dir, train_dir, int_cause, short_name, age_feature)
+    main(model_param, model_name, write_dir,
+         train_dir, int_cause, short_name, age_feature)

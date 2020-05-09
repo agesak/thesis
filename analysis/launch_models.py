@@ -30,13 +30,13 @@ class ModelLauncher():
                   "multi_nb": 1,
                   "bernoulli_nb": 1,
                   "complement_nb": 1,
-                  "svm": 4,
+                  "svm": 5,
                   "svm_bag": 8,
                   "gbt": 4,
                   "xgb": 5}
     memory_dict = {"rf": 40,
                    "multi_nb": 8,
-                   "bernoulli_nb": 6,
+                   "bernoulli_nb": 20,
                    "complement_nb": 6,
                    "gbt": 30,
                    "xgb": 12,
@@ -48,7 +48,7 @@ class ModelLauncher():
                     "bernoulli_nb": "1:00:00",
                     "gbt": "96:00:00",
                     "xgb": "48:00:00",
-                    "svm": "96:00:00",
+                    "svm": "120:00:00",
                     "svm_bag": "24:00:00"
                     }
     df_size_dict = {"x59": 1056994,
@@ -92,7 +92,7 @@ class ModelLauncher():
         # if ModelLauncher.num_datasets == 10:
         #     numbers = (list(chunks(range(1, 11), 10)))
         if ModelLauncher.num_datasets == 500:
-            numbers = (list(chunks(range(1, 501), 125)))
+            numbers = (list(chunks(range(1, 501), 250)))
             dataset_dict = dict(zip(range(0, len(numbers)), numbers))
             holds_dict = {key: [] for key in dataset_dict.keys()}
             for batch in dataset_dict.keys():
@@ -100,7 +100,8 @@ class ModelLauncher():
                 hold_ids = []
                 for dataset_num in datasets:
                     params = [self.model_dir, self.dataset_dir, dataset_num,
-                              ModelLauncher.df_size_dict[f"{self.int_cause}"]]
+                              ModelLauncher.df_size_dict[f"{self.int_cause}"],
+                              self.age_feature]
                     jobname = f"{self.int_cause}_dataset_{dataset_num}"
                     jid = submit_mcod(jobname, "python", worker,
                                       cores=2, memory="12G",
@@ -115,7 +116,7 @@ class ModelLauncher():
         predicted_test_dir = f"{self.dataset_dir}/{short_name}"
 
         params = [self.model_dir, predicted_test_dir, self.int_cause,
-                  short_name, ModelLauncher.model_dict[short_name]]
+                  short_name, ModelLauncher.model_dict[short_name], self.age_feature]
         jobname = f"{ModelLauncher.model_dict[short_name]}_{self.int_cause}_predictions"
         worker = f"/homes/agesak/thesis/analysis/run_unobserved_predictions.py"
         submit_mcod(jobname, "python", worker, cores=2, memory="12G",
@@ -132,7 +133,7 @@ class ModelLauncher():
         # if ModelLauncher.num_datasets == 10:
         #     numbers = (list(chunks(range(1, 11), 5)))
         if ModelLauncher.num_datasets == 500:
-            numbers = (list(chunks(range(1, 501), 125)))
+            numbers = (list(chunks(range(1, 501), 250)))
             dataset_dict = dict(zip(range(0, len(numbers)), numbers))
             holds_dict = {key: [] for key in dataset_dict.keys()}
             for batch in dataset_dict.keys():
@@ -147,7 +148,7 @@ class ModelLauncher():
                         f"dataset_{dataset_num}_predictions.csv")
                     params = [best_model_dir, self.dataset_dir,
                               testing_model_dir, best_model_params,
-                              self.int_cause, dataset_num]
+                              self.int_cause, dataset_num, self.age_feature]
                     jobname = f"{model_name}_{self.int_cause}_predictions_dataset_{dataset_num}_{best_model_params}"
                     jid = submit_mcod(jobname, "python", worker,
                                       cores=3, memory="25G",
@@ -237,7 +238,7 @@ if __name__ == "__main__":
         "--int_cause", help="either x59 or y34", required=True,
         choices=["x59", "y34"])
     parser.add_argument("--age_feature", type=str2bool, nargs="?",
-                        const=True, default=False)
+                        const=True, default=False, required=True)
     # not required for train_test/create_test_datasets
     parser.add_argument(
         "--model_type", help="short-hand name for ML classifier",
