@@ -9,10 +9,12 @@ from sklearn.externals import joblib
 from sklearn.metrics import precision_score, recall_score, accuracy_score
 
 
-def main(best_model_dir, dataset_dir, testing_model_dir, best_model_params, int_cause, dataset_num, age_feature):
+def main(best_model_dir, dataset_dir, testing_model_dir, best_model_params, int_cause, dataset_num, age_feature, dem_feature):
 
     if age_feature:
         x_col = "cause_age_info"
+    elif dem_feature:
+        x_col = "dem_info"
     else:
         x_col = "cause_info"
     # read in model object of best model
@@ -66,6 +68,7 @@ if __name__ == '__main__':
     int_cause = str(sys.argv[5])
     dataset_num = int(sys.argv[6])
     age_feature = str2bool(sys.argv[7])
+    dem_feature = str2bool(sys.argv[8])
 
     print(best_model_dir)
     print(dataset_dir)
@@ -76,4 +79,5 @@ if __name__ == '__main__':
     print(age_feature)
 
     main(best_model_dir, dataset_dir, testing_model_dir,
-         best_model_params, int_cause, dataset_num, age_feature)
+         best_model_params, int_cause, dataset_num, age_feature,
+         dem_feature)

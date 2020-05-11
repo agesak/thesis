@@ -106,7 +106,7 @@ def format_best_fit_params(best_fit, model_name):
 
     return best_model_params
 
-def format_for_bow(df, age_feature):
+def format_for_bow(df, age_feature, dem_feature):
     keep_cols = ["cause_id", "cause_info"]
     multiple_cause_cols = [x for x in list(df) if "cause" in x]
     multiple_cause_cols.remove("cause_id")
@@ -117,11 +117,15 @@ def format_for_bow(df, age_feature):
         df["cause_age_info"] = df[["cause_info", "age_group_id"]].astype(
         str).apply(lambda x: " ".join(x), axis=1)
         keep_cols += ["cause_age_info"]
+    if dem_feature:
+        df["dem_info"] = df[["cause_info", "location_id", "sex_id", "year_id", "age_group_id"]].astype(
+        str).apply(lambda x: " ".join(x), axis=1)
+        keep_cols += ["dem_info"]
     df = df[keep_cols]
     return df
 
 
-def generate_multiple_cause_rows(sample_df, test_df, cause, age_feature):
+def generate_multiple_cause_rows(sample_df, test_df, cause, age_feature, dem_feature):
     """
     Arguments:
         sample_df: cause-specific df with number of rows equal to
@@ -135,9 +139,11 @@ def generate_multiple_cause_rows(sample_df, test_df, cause, age_feature):
     # get single "cause_info" column
     if age_feature:
         x_col = "cause_age_info"
+    elif dem_feature:
+        x_col = "dem_info"
     else:
         x_col = "cause_info"
-    test_df = format_for_bow(test_df, age_feature)
+    test_df = format_for_bow(test_df, age_feature, dem_feature)
 
     # subset to only cause-specific rows in test df
     cause_df = test_df.loc[test_df.cause_id == cause]

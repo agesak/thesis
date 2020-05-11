@@ -114,6 +114,8 @@ def create_train_test(df, test, int_cause, age_group_id):
         print_log_message(f"resulting df is {len(df)} rows")
     df["cause_age_info"] = df[["cause_info", "age_group_id"]].astype(
         str).apply(lambda x: " ".join(x), axis=1)
+    df["dem_info"] = df[["cause_info", "location_id", "sex_id", "year_id", "age_group_id"]].astype(
+        str).apply(lambda x: " ".join(x), axis=1)
 
     garbage_df = df.query(f"cause_id==743 & {int_cause}==1")
     df = df.query(f"cause_id!=743 & {int_cause}!=1")

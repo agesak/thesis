@@ -4,9 +4,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+from cod_prep.claude.claude_io import makedirs_safely
 
-mcod_dir = "/ihme/cod/prep/mcod/process_data/"
-date = "2020_05_03"
+DATE = "2020_05_03"
+MCOD_DIR = "/ihme/cod/prep/mcod/process_data/"
 
 def get_model_summaries(model_dir, param_string):
 
@@ -38,7 +39,8 @@ def plot_figure(df, int_cause, x_axis="max_depth", y_axis="mean_test_concordance
     plt.subplots_adjust(hspace=0.4, wspace=0.4)
     plt.ylabel(y_axis)
     plt.xlabel(x_axis)
-    plt.savefig(f"/home/j/temp/agesak/thesis/gridsearch_plots/{int_cause}_rf_trees_{date}.pdf")
+    makedirs_safely(f"/home/j/temp/agesak/thesis/gridsearch_plots/{DATE}/")
+    plt.savefig(f"/home/j/temp/agesak/thesis/gridsearch_plots/{DATE}/{int_cause}_rf_{DATE}.pdf")
 
 
 # for int_cause in ["x59", "y34"]:
@@ -54,10 +56,10 @@ def plot_figure(df, int_cause, x_axis="max_depth", y_axis="mean_test_concordance
 #     plot_figure(summaries, int_cause)
 
 
-for int_cause in ["x59"]:
+for int_cause in ["x59", "y34"]:
     summaries = []
     for tree in ["60", "70", "80", "90", "100"]:
-        summary = get_model_summaries(model_dir=f"{mcod_dir}/{int_cause}/thesis/{date}/rf", param_string=f"model_{tree}_")
+        summary = get_model_summaries(model_dir=f"{MCOD_DIR}/{int_cause}/thesis/{DATE}/rf", param_string=f"model_{tree}_")
         summaries.append(summary)
     summaries = pd.concat(summaries)
     summaries.columns = [x.replace("param_clf__estimator__", "")

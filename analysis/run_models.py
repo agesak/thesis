@@ -7,10 +7,12 @@ from thesis_utils.grid_search import run_pipeline, format_gridsearch_params
 from thesis_utils.misc import str2bool
 
 
-def main(model_param, model_name, write_dir, train_dir, int_cause, short_name, age_feature):
+def main(model_param, model_name, write_dir, train_dir, int_cause, short_name, age_feature, dem_feature):
 
     if age_feature:
         x_col = "cause_age_info"
+    elif dem_feature:
+        x_col = "dem_info"
     else:
         x_col = "cause_info"
 
@@ -23,7 +25,8 @@ def main(model_param, model_name, write_dir, train_dir, int_cause, short_name, a
     print_log_message("running pipeline")
     results, grid_results = run_pipeline(model_name, short_name,
                                          model_df, model_params,
-                                         write_dir, int_cause, age_feature)
+                                         write_dir, int_cause,
+                                         age_feature, dem_feature)
     results.to_csv(f"{write_dir}/summary_stats.csv", index=False)
     joblib.dump(grid_results, f"{write_dir}/grid_results.pkl")
 
@@ -37,6 +40,7 @@ if __name__ == '__main__':
     short_name = str(sys.argv[5])
     int_cause = str(sys.argv[6])
     age_feature = str2bool(sys.argv[7])
+    dem_feature = str2bool(sys.argv[8])
 
     print(write_dir)
     print(train_dir)
@@ -47,4 +51,4 @@ if __name__ == '__main__':
     print(age_feature)
     print(type(age_feature))
     main(model_param, model_name, write_dir,
-         train_dir, int_cause, short_name, age_feature)
+         train_dir, int_cause, short_name, age_feature, dem_feature)

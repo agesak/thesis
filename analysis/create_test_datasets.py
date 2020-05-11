@@ -11,7 +11,7 @@ DEM_COLS = ["cause_id", "location_id", "sex_id", "year_id", "age_group_id"]
 
 
 def create_test_datatsets(test_df, dirichlet_dict, write_dir, dataset_num,
-                          df_size, age_feature):
+                          df_size, age_feature, dem_feature):
 
     df = pd.DataFrame({"cause_id": [np.NaN] * df_size})
     dfs = []
@@ -21,10 +21,9 @@ def create_test_datatsets(test_df, dirichlet_dict, write_dir, dataset_num,
         subdf = df.sample(frac=dirichlet_dict[cause], replace=True).assign(
             cause_id=cause)
         print_log_message(f"generating multiple cause rows for {cause}")
-        mcause_df = generate_multiple_cause_rows(subdf, test_df, cause, age_feature)
+        mcause_df = generate_multiple_cause_rows(subdf, test_df, cause, age_feature, dem_feature)
         dfs.append(mcause_df)
 
-    # makedirs_safely(df_dir)
     remove_if_output_exists(write_dir, f"dataset_{dataset_num}.csv")
     remove_if_output_exists(
         write_dir, f"dataset_{dataset_num}_dirichlet_distribution.pkl")
@@ -38,7 +37,7 @@ def create_test_datatsets(test_df, dirichlet_dict, write_dir, dataset_num,
                 f"{write_dir}/dataset_{dataset_num}_dirichlet_distribution.pkl")
 
 
-def main(model_dir, write_dir, dataset_num, df_size, age_feature):
+def main(model_dir, write_dir, dataset_num, df_size, age_feature, dem_feature):
     test_df = pd.read_csv(
         f"{model_dir}/test_df.csv")
 
@@ -62,7 +61,7 @@ def main(model_dir, write_dir, dataset_num, df_size, age_feature):
     print_log_message("creating test datasets")
     create_test_datatsets(test_df, dirichlet_dict,
                           write_dir, dataset_num,
-                          df_size, age_feature)
+                          df_size, age_feature, dem_feature)
 
 
 if __name__ == '__main__':
@@ -72,4 +71,5 @@ if __name__ == '__main__':
     dataset_num = int(sys.argv[3])
     df_size = int(sys.argv[4])
     age_feature = str2bool(sys.argv[5])
-    main(model_dir, write_dir, dataset_num, df_size, age_feature)
+    dem_feature = str2bool(sys.argv[6])
+    main(model_dir, write_dir, dataset_num, df_size, age_feature, dem_feature)

@@ -85,7 +85,7 @@ def format_gridsearch_params(model_name, param):
 
 
 def run_pipeline(model, short_name, model_df, model_params,
-                 write_dir, int_cause, age_feature):
+                 write_dir, int_cause, age_feature, dem_feature):
 
     if short_name == "svm_bag":
         model = {'model': BaggingClassifier,
@@ -124,6 +124,8 @@ def run_pipeline(model, short_name, model_df, model_params,
                         refit="concordance", verbose=6)
     if age_feature:
         grid_results = gscv.fit(model_df["cause_age_info"], model_df["cause_id"])
+    elif dem_feature:
+        grid_results = gscv.fit(model_df["dem_info"], model_df["cause_id"])
     else:
         grid_results = gscv.fit(model_df["cause_info"], model_df["cause_id"])
 

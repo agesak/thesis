@@ -42,7 +42,7 @@ def aggregate_evaluation_metrics(summaries, testing_dir):
     summary_df.to_csv(f"{testing_dir}/model_metrics_summary.csv", index=False)
 
 
-def main(data_dir, predicted_test_dir, int_cause, short_name, model_name, age_feature):
+def main(data_dir, predicted_test_dir, int_cause, short_name, model_name, age_feature, dem_feature):
     # read in predictions from 500 test datasets
     # aggregate the evaluation metrics from each of the 500
     # refit model on all the observed data
@@ -50,6 +50,8 @@ def main(data_dir, predicted_test_dir, int_cause, short_name, model_name, age_fe
 
     if age_feature:
         x_col = "cause_age_info"
+    elif dem_feature:
+        x_col = "dem_info"
     else:
         x_col = "cause_info"
 
@@ -126,8 +128,9 @@ if __name__ == '__main__':
     short_name = str(sys.argv[4])
     model_name = str(sys.argv[5])
     age_feature = str2bool(sys.argv[6])
+    dem_feature = str2bool(sys.argv[7])
 
     print(data_dir)
     print(predicted_test_dir)
 
-    main(data_dir, predicted_test_dir, int_cause, short_name, model_name, age_feature)
+    main(data_dir, predicted_test_dir, int_cause, short_name, model_name, age_feature, dem_feature)

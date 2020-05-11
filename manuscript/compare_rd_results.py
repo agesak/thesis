@@ -4,15 +4,16 @@ from functools import reduce
 
 from db_queries import get_location_metadata, get_cause_metadata
 from cod_prep.downloaders import pretty_print, create_age_bins
+from cod_prep.claude.claude_io import makedirs_safely
 from thesis_utils.misc import get_country_names
 
-date = "2020_05_07"
+DATE = "2020_05_10"
 
 def format_classifier_results(int_cause, short_name):
+    model_dir = f"/ihme/cod/prep/mcod/process_data/{int_cause}/thesis/sample_dirichlet/{DATE}/"
 
-    # just a test while I figure things out
     df = pd.read_csv(
-        f"/ihme/cod/prep/mcod/process_data/{int_cause}/thesis/sample_dirichlet/{date}/{short_name}/model_predictions.csv")
+        f"{model_dir}/{short_name}/model_predictions.csv")
 
     df = get_country_names(df)
     df.drop(columns=["location_name", "Unnamed: 0", "cause_id"], inplace=True)
@@ -27,7 +28,6 @@ def format_classifier_results(int_cause, short_name):
 
 
 def format_gbd_results(int_cause):
-
 
     rd = pd.read_csv(
         f"/ihme/cod/prep/mcod/process_data/{int_cause}/rdp/2019_03_07/redistributed_deaths.csv")
@@ -63,23 +63,30 @@ def format_gbd_results(int_cause):
     return rd
 
 def choose_best_naive_bayes(int_cause):
+    # this will need to have a by age option
 
-    multi_df = pd.read_csv(f"/ihme/cod/prep/mcod/process_data/{int_cause}/thesis/sample_dirichlet/{date}/multi_nb/model_metrics_summary.csv")
+    multi_df = pd.read_csv(f"/ihme/cod/prep/mcod/process_data/{int_cause}/thesis/sample_dirichlet/{DATE}/multi_nb/model_metrics_summary.csv")
     multi_df.rename(columns= lambda x: x + '_multi_nb' if x not in ['Evaluation metrics'] else x, inplace=True)
 
-    complement_df = pd.read_csv(f"/ihme/cod/prep/mcod/process_data/{int_cause}/thesis/sample_dirichlet/{date}/complement_nb/model_metrics_summary.csv")
+    complement_df = pd.read_csv(f"/ihme/cod/prep/mcod/process_data/{int_cause}/thesis/sample_dirichlet/{DATE}/complement_nb/model_metrics_summary.csv")
     complement_df.rename(columns= lambda x: x + '_complement_nb'  if x not in ['Evaluation metrics'] else x, inplace=True)
 
-    bernoulli_df = pd.read_csv(f"/ihme/cod/prep/mcod/process_data/{int_cause}/thesis/sample_dirichlet/{date}/bernoulli_nb/model_metrics_summary.csv")
+    bernoulli_df = pd.read_csv(f"/ihme/cod/prep/mcod/process_data/{int_cause}/thesis/sample_dirichlet/{DATE}/bernoulli_nb/model_metrics_summary.csv")
     bernoulli_df.rename(columns= lambda x: x + '_bernoulli_nb'  if x not in ['Evaluation metrics'] else x, inplace=True)
 
     df = reduce(lambda left,right: pd.merge(left,right,on=['Evaluation metrics'],
                                                 how='outer'), [multi_df, complement_df, bernoulli_df])
-    df.to_csv(f"/home/j/temp/agesak/thesis/model_results/test_set_summaries/{date}_{int_cause}_naivebayes_summary.csv", index=False)
 
+    makedirs_safely(f"/home/j/temp/agesak/thesis/model_results/test_set_summaries/{DATE}/")
+    df.to_csv(f"/home/j/temp/agesak/thesis/model_results/test_set_summaries/{DATE}/{int_cause}_naivebayes_summary.csv", index=False)
     best_model = df[[x for x in list(df) if "Mean" in x]].idxmax(axis=1).iloc[0]
 
     return best_model
+
+# will only need to run this once ever tbh
+for int_cause in ["x59", "y34"]:
+    rd = format_gbd_results(int_cause)
+    rd.to_csv(f"/home/j/temp/agesak/thesis/model_results/{int_cause}_gbd_2019.csv", index=False)
 
 
 model_dict = {"x59":"", "y34":""}
@@ -90,12 +97,10 @@ for int_cause in ["x59", "y34"]:
     model_dict.update({f"{int_cause}":best_model})
 
 
-# will need to adapt this for other classifiers
-for int_cause in ["x59", "y34"]:
+
+for int_cause in ["x59", "y34"]:    
     short_name = model_dict[int_cause]
     df = format_classifier_results(int_cause, short_name)
-    rd = format_gbd_results(int_cause)
-    rd.to_csv(
-        f"/home/j/temp/agesak/thesis/model_results/{date}_{int_cause}_{short_name}_rd.csv", index=False)
+    makedirs_safely(f"/home/j/temp/agesak/thesis/model_results/{DATE}")
     df.to_csv(
-        f"/home/j/temp/agesak/thesis/model_results/{date}_{int_cause}_{short_name}_predictions.csv", index=False)
+        f"/home/j/temp/agesak/thesis/model_results/{DATE}/{DATE}_{int_cause}_{short_name}_predictions.csv", index=False)
