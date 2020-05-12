@@ -17,16 +17,22 @@ from thesis_utils.model_evaluation import (get_best_fit,
 
 class ModelLauncher():
 
-    model_dict = {"rf": "RandomForestClassifier", "multi_nb": "MultinomialNB",
-                  "bernoulli_nb": "BernoulliNB", "complement_nb": "ComplementNB",
-                  "svm": "SVC", "svm_bag": "SVC", "gbt": "GradientBoostingClassifier",
+    model_dict = {"rf": "RandomForestClassifier",
+                  "multi_nb": "MultinomialNB",
+                  "bernoulli_nb": "BernoulliNB",
+                  "complement_nb": "ComplementNB",
+                  "svm": "SVC", "svm_bag": "SVC",
+                  "gbt": "GradientBoostingClassifier",
                   "xgb": "XGBClassifier"}
     param_dict = {"rf": 4, "multi_nb": 1, "bernoulli_nb": 1,
-                  "complement_nb": 1, "svm": 5, "svm_bag": 8, "gbt": 4, "xgb": 5}
-    memory_dict = {"rf": 40, "multi_nb": 20, "bernoulli_nb": 20, "complement_nb": 20,
-                   "gbt": 30, "xgb": 20, "svm": 40, "svm_bag": 20}
-    runtime_dict = {"rf": "52:00:00", "multi_nb": "1:00:00", "complement_nb": "1:00:00",
-                    "bernoulli_nb": "1:00:00", "gbt": "96:00:00", "xgb": "48:00:00",
+                  "complement_nb": 1, "svm": 5, "svm_bag": 8, "gbt": 4,
+                  "xgb": 5}
+    memory_dict = {"rf": 40, "multi_nb": 20, "bernoulli_nb": 20,
+                   "complement_nb": 20, "gbt": 30, "xgb": 20,
+                   "svm": 40, "svm_bag": 20}
+    runtime_dict = {"rf": "52:00:00", "multi_nb": "1:00:00",
+                    "complement_nb": "1:00:00", "bernoulli_nb": "1:00:00",
+                    "gbt": "96:00:00", "xgb": "52:00:00",
                     "svm": "120:00:00", "svm_bag": "24:00:00"}
     df_size_dict = {"x59": 1056994, "y34": 1708834}
     num_datasets = 500
@@ -51,16 +57,14 @@ class ModelLauncher():
             assert self.phase == "train_test", "your model run must be associated with an already existing train/test df date"
         else:
             self.description = self.run_filters["description"]
-        self.model_dir = f"/ihme/cod/prep/mcod/process_data/{self.int_cause}/thesis/{self.description}"
         self.dataset_dir = f"/ihme/cod/prep/mcod/process_data/{self.int_cause}/thesis/sample_dirichlet/{self.description}"
+        self.model_dir = f"/ihme/cod/prep/mcod/process_data/{self.int_cause}/thesis/{self.description}"
         self.validate_run_filters()
 
     def validate_run_filters(self):
-        assert not (self.age_feature &
-                 self.by_age), "if you're running a model by age, it shouldn't also be a feature"
+        assert not (self.age_feature & self.by_age), "if you're running a model by age, it shouldn't also be a feature"
         assert not (self.age_feature & self.dem_feature), "dem feature includes age, please choose just 1"
         assert ~self.by_age, "girl you decided not to run models by age for now"
-
 
     def create_training_data(self, df, age_group_id=None):
         if age_group_id:
@@ -69,7 +73,8 @@ class ModelLauncher():
             write_dir = f"{self.model_dir}"
         makedirs_safely(write_dir)
         train_df, test_df, int_cause_df = create_train_test(
-            df, test=self.test, int_cause=self.int_cause, age_group_id=age_group_id)
+            df, test=self.test, int_cause=self.int_cause,
+            age_group_id=age_group_id)
         print_log_message(f"writing train/test to df for {age_group_id}")
         train_df.to_csv(f"{write_dir}/train_df.csv", index=False)
         test_df.to_csv(f"{write_dir}/test_df.csv", index=False)
@@ -158,10 +163,11 @@ class ModelLauncher():
                         f"dataset_{dataset_num}_predictions.csv")
                     params = [best_model_dir, dataset_dir,
                               testing_model_dir, best_model_params,
-                              self.int_cause, dataset_num, self.age_feature, self.dem_feature]
+                              self.int_cause, dataset_num, self.age_feature,
+                              self.dem_feature]
                     jobname = f"{model_name}_{self.int_cause}_predictions_dataset_{dataset_num}_{best_model_params}"
                     jid = submit_mcod(jobname, "python", worker,
-                                      cores=3, memory="25G",
+                                      cores=4, memory="25G",
                                       params=params, verbose=True,
                                       logging=True, jdrive=False,
                                       queue="long.q", holds=holds_dict[batch])
@@ -188,11 +194,18 @@ class ModelLauncher():
                   model_name, short_name, self.int_cause,
                   self.age_feature, self.dem_feature]
         worker = f"/homes/agesak/thesis/analysis/run_models.py"
+        memory = ModelLauncher.memory_dict[short_name]
+        runtime = ModelLauncher.runtime_dict[short_name]
+        if (self.int_cause == "y34") & (short_name == "rf"):
+            memory = 65
+            runtime = "96:00:00"
+        if (self.int_cause == "y34") & (short_name == "xgb"):
+            memory = 25
         submit_mcod(jobname, "python", worker, cores=4,
-                    memory=f"{ModelLauncher.memory_dict[short_name]}G",
+                    memory=f"{memory}G",
                     params=params, verbose=True, logging=True,
                     jdrive=False, queue="long.q",
-                    runtime=f"{ModelLauncher.runtime_dict[short_name]}")
+                    runtime=runtime)
 
     def get_best_model(self, short_name, age_group_id):
         if age_group_id:
@@ -208,7 +221,7 @@ class ModelLauncher():
             os.listdir(dataset_dir)) if re.search(
             "dataset_[0-9]{0,3}.csv", x)])
         failed = ModelLauncher.num_datasets - num_datasets
-        # assert num_datasets == ModelLauncher.num_datasets, f"{failed} jobs creating test datasets failed"
+        assert num_datasets == ModelLauncher.num_datasets, f"{failed} jobs creating test datasets failed"
         return best_model_params
 
     def launch(self):
@@ -263,12 +276,14 @@ class ModelLauncher():
                         best_model_params = self.get_best_model(
                             short_name, age_group_id)
                         self.launch_testing_models(
-                            model_name, short_name, best_model_params, age_group_id)
+                            model_name, short_name, best_model_params,
+                            age_group_id)
                 else:
                     best_model_params = self.get_best_model(
                         short_name, age_group_id=None)
                     self.launch_testing_models(
-                        model_name, short_name, best_model_params, age_group_id=None)
+                        model_name, short_name, best_model_params,
+                        age_group_id=None)
 
         if self.phase == "launch_int_cause_predictions":
             for short_name in self.model_types:
@@ -301,7 +316,7 @@ if __name__ == "__main__":
                         help="run models by age")
     parser.add_argument("--dem_feature", type=str2bool, nargs="?",
                         const=True, default=False, required=True,
-                        help="include asyl as a feature in bow")    
+                        help="include asyl as a feature in bow")
     # not required for train_test/create_test_datasets
     parser.add_argument(
         "--model_type", help="short-hand name for ML classifier",
