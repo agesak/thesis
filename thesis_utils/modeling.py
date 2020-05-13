@@ -3,15 +3,21 @@ import glob
 import os
 import numpy as np
 import itertools
+
 from sklearn.model_selection import train_test_split
+from keras.layers import Dense
+from keras.models import Sequential
 
 from mcod_prep.utils.mcause_io import get_mcause_data
 from mcod_prep.utils.nids import get_datasets
 from cod_prep.utils.misc import print_log_message
 from cod_prep.downloaders import (get_ages, add_age_metadata, create_age_bins,
-    add_cause_metadata, get_current_cause_hierarchy)
+                                  add_cause_metadata,
+                                  get_current_cause_hierarchy)
 from cod_prep.claude.configurator import Configurator
+
 from db_queries import get_location_metadata
+
 from thesis_utils.directories import get_limited_use_directory
 from thesis_data_prep.launch_mcod_mapping import MCauseLauncher
 
@@ -70,12 +76,15 @@ def drop_age_restricted_cols(df):
     age_meta_df = get_ages(force_rerun=False, block_rerun=True)
     # secret causes in restrictions
     cause_meta_df = get_current_cause_hierarchy(cause_set_id=4,
-            **{'block_rerun': True, 'force_rerun': False})
-    injuries_restrictions = pd.read_csv("/homes/agesak/thesis/maps/injuries_overrides.csv")
-    injuries_restrictions = add_cause_metadata(injuries_restrictions, add_cols='cause_id', merge_col='acause',
-                            cause_meta_df=cause_meta_df)
-    injuries_restrictions["age_start_group"] = injuries_restrictions["age_start_group"].fillna(0)
-
+                                                **{'block_rerun': True,
+                                                   'force_rerun': False})
+    restrict_df = pd.read_csv(
+        "/homes/agesak/thesis/maps/injuries_overrides.csv")
+    restrict_df = add_cause_metadata(restrict_df,
+                                     add_cols='cause_id',
+                                     merge_col='acause',
+                                     cause_meta_df=cause_meta_df)
+    restrict_df["age_start_group"] = restrict_df["age_start_group"].fillna(0)
 
     orig_cols = df.columns
     df = add_age_metadata(
@@ -83,7 +92,7 @@ def drop_age_restricted_cols(df):
         age_meta_df=age_meta_df
     )
 
-    df = df.merge(injuries_restrictions, on='cause_id', how='left')
+    df = df.merge(restrict_df, on='cause_id', how='left')
 
     # age_group_years_end is weird, 0-14 means age_group_years_end 15
     too_young = df["age_group_years_end"] <= df["age_start_group"]
@@ -92,9 +101,11 @@ def drop_age_restricted_cols(df):
     df = df[~(too_young | too_old)]
     df = df[orig_cols]
     end = len(df)
-    print_log_message(f"dropping {start - end} cols that violate age restrictions")
+    print_log_message(
+        f"dropping {start - end} cols that violate age restrictions")
 
     return df
+
 
 def create_train_test(df, test, int_cause, age_group_id):
     """Create train/test datasets, if running tests,
@@ -145,6 +156,14 @@ def create_train_test(df, test, int_cause, age_group_id):
     train_df, test_df = train_test_split(df, test_size=0.25)
 
     return train_df, test_df, garbage_df
+
+
+def create_neural_network(dropout_rate, output_nodes):
+    model = Sequential()
+    # see if can put in a for loop
+    model.add(Dense(output_nodes, activation='softmax'))
+    model.compile(optimizer="adam", loss="categorical_crossentropy")
+    return model
 
 
 def rf_params(model):
@@ -281,6 +300,22 @@ def xgb_params(model):
     keys = "clf__estimator__eta", "clf__estimator__gamma", "clf__estimator__max_depth", "clf__estimator__subsample", "clf__estimator__n_estimators"
     params = [dict(zip(keys, combo)) for combo in itertools.product(
         clf__estimator__eta, clf__estimator__gamma, clf__estimator__max_depth, clf__estimator__subsample, clf__estimator__n_estimators)]
+    return params
+
+
+def nn_params(model):
+    assert model == "nn", "wrong model type"
+    df = pd.read_csv("/homes/agesak/thesis/maps/parameters.csv")
+    clf__epochs = df.loc[df[
+        f"{model}"] == "clf__epochs",
+        f"{model}_value"].str.split(",")[0]
+    clf__batch_size = df.loc[df[
+        f"{model}"] == "clf__batch_size",
+        f"{model}_value"].str.split(",")[1]
+    keys = "clf__epochs", "clf__batch_size"
+    params = [dict(zip(keys, combo)) for combo in itertools.product(
+        clf__epochs, clf__batch_size)]
+
     return params
 
 

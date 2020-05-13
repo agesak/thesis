@@ -23,17 +23,19 @@ class ModelLauncher():
                   "complement_nb": "ComplementNB",
                   "svm": "SVC", "svm_bag": "SVC",
                   "gbt": "GradientBoostingClassifier",
-                  "xgb": "XGBClassifier"}
+                  "xgb": "XGBClassifier",
+                  "nn": "KerasClassifier"}
     param_dict = {"rf": 4, "multi_nb": 1, "bernoulli_nb": 1,
                   "complement_nb": 1, "svm": 5, "svm_bag": 8, "gbt": 4,
-                  "xgb": 5}
-    memory_dict = {"rf": 40, "multi_nb": 20, "bernoulli_nb": 20,
+                  "xgb": 5, "nn": 2}
+    memory_dict = {"rf": 45, "multi_nb": 20, "bernoulli_nb": 20,
                    "complement_nb": 20, "gbt": 30, "xgb": 20,
-                   "svm": 40, "svm_bag": 20}
+                   "svm": 40, "svm_bag": 20, "nn": 30}
     runtime_dict = {"rf": "52:00:00", "multi_nb": "1:00:00",
                     "complement_nb": "1:00:00", "bernoulli_nb": "1:00:00",
-                    "gbt": "96:00:00", "xgb": "52:00:00",
-                    "svm": "120:00:00", "svm_bag": "24:00:00"}
+                    "gbt": "96:00:00", "xgb": "96:00:00",
+                    "svm": "120:00:00", "svm_bag": "24:00:00",
+                    "nn": "36:00:00"}
     df_size_dict = {"x59": 1056994, "y34": 1708834}
     num_datasets = 500
     # num_datasets = 10
@@ -62,8 +64,10 @@ class ModelLauncher():
         self.validate_run_filters()
 
     def validate_run_filters(self):
-        assert not (self.age_feature & self.by_age), "if you're running a model by age, it shouldn't also be a feature"
-        assert not (self.age_feature & self.dem_feature), "dem feature includes age, please choose just 1"
+        assert not (self.age_feature &
+                    self.by_age), "if you're running a model by age, it shouldn't also be a feature"
+        assert not (self.age_feature &
+                    self.dem_feature), "dem feature includes age, please choose just 1"
         assert ~self.by_age, "girl you decided not to run models by age for now"
 
     def create_training_data(self, df, age_group_id=None):

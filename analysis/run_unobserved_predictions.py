@@ -17,9 +17,10 @@ def read_in_summary_stats(model_path):
 
     summaries = []
     for dataset_num in range(1, 501, 1):
-        df = pd.read_csv(
-            f"{model_path}/dataset_{dataset_num}_summary_stats.csv")
-        summaries.append(df)
+        if os.path.exists(f"{model_path}/dataset_{dataset_num}_summary_stats.csv"):
+            df = pd.read_csv(
+                f"{model_path}/dataset_{dataset_num}_summary_stats.csv")
+            summaries.append(df)
     return pd.concat(summaries)
 
 

@@ -3,6 +3,7 @@ import numpy as np
 
 from cod_prep.utils.misc import print_log_message
 from thesis_utils.clf_switching import ClfSwitcher
+from thesis_utils.modeling import create_neural_network
 from thesis_utils.model_evaluation import (calculate_cccsmfa,
                                            calculate_concordance)
 
@@ -17,6 +18,9 @@ from sklearn.pipeline import Pipeline
 from sklearn.metrics import (precision_score, recall_score,
                              accuracy_score, make_scorer)
 from sklearn.model_selection import GridSearchCV
+from sklearn.preprocessing import FunctionTransformer
+from keras.wrappers.scikit_learn import KerasClassifier
+
 
 
 def create_custom_scorers(int_cause):
@@ -52,7 +56,8 @@ def create_custom_scorers(int_cause):
 def transform_measure_cols(df, measure, model_name, params):
     """Change """
     measure_dict = {"int": int, "float": float, "bool": bool}
-    measure_cols = df.loc[df[f"{model_name}_dtype"] == measure, f"{model_name}"].unique().tolist()
+    measure_cols = df.loc[df[
+        f"{model_name}_dtype"] == measure, f"{model_name}"].unique().tolist()
     for measure_col in measure_cols:
         params[measure_col] = [measure_dict[measure](params[measure_col])]
 
@@ -99,6 +104,20 @@ def run_pipeline(model, short_name, model_df, model_params,
         ])
 
         cv_params = model['parameters']
+    elif short_name == "nn":
+
+        pipeline = Pipeline([
+            ("bow", CountVectorizer(lowercase=False)),
+            ("dense", FunctionTransformer(
+                lambda x: x.todense(), accept_sparse=True)),
+            ("clf", KerasClassifier(build_fn=create_neural_network,
+                                    dropout_rate=0.2,
+                                    output_nodes=len(
+                                        model_df.cause_id.unique())))
+        ])
+
+        cv_params = model_params.copy()
+
     else:
         pipeline = Pipeline([
             ("bow", CountVectorizer(lowercase=False)),
@@ -120,10 +139,11 @@ def run_pipeline(model, short_name, model_df, model_params,
                "concordance": scorer_list[6]}
 
     gscv = GridSearchCV(pipeline, cv_params, cv=5,
-                        scoring=scoring, n_jobs=2, pre_dispatch=6,
+                        scoring=scoring, n_jobs=3, pre_dispatch=6,
                         refit="concordance", verbose=6)
     if age_feature:
-        grid_results = gscv.fit(model_df["cause_age_info"], model_df["cause_id"])
+        grid_results = gscv.fit(
+            model_df["cause_age_info"], model_df["cause_id"])
     elif dem_feature:
         grid_results = gscv.fit(model_df["dem_info"], model_df["cause_id"])
     else:

@@ -77,6 +77,7 @@ if __name__ == '__main__':
     print(int_cause)
     print(dataset_num)
     print(age_feature)
+    print(dem_feature)
 
     main(best_model_dir, dataset_dir, testing_model_dir,
          best_model_params, int_cause, dataset_num, age_feature,
