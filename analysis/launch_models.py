@@ -27,11 +27,11 @@ class ModelLauncher():
                   "nn": "KerasClassifier"}
     param_dict = {"rf": 4, "multi_nb": 1, "bernoulli_nb": 1,
                   "complement_nb": 1, "svm": 5, "svm_bag": 8, "gbt": 4,
-                  "xgb": 5, "nn": 2}
-    memory_dict = {"rf": 45, "multi_nb": 20, "bernoulli_nb": 20,
+                  "xgb": 5, "nn": 3}
+    memory_dict = {"rf": 65, "multi_nb": 20, "bernoulli_nb": 20,
                    "complement_nb": 20, "gbt": 30, "xgb": 20,
-                   "svm": 40, "svm_bag": 20, "nn": 30}
-    runtime_dict = {"rf": "52:00:00", "multi_nb": "1:00:00",
+                   "svm": 40, "svm_bag": 20, "nn": 75}
+    runtime_dict = {"rf": "96:00:00", "multi_nb": "1:00:00",
                     "complement_nb": "1:00:00", "bernoulli_nb": "1:00:00",
                     "gbt": "96:00:00", "xgb": "96:00:00",
                     "svm": "120:00:00", "svm_bag": "24:00:00",
@@ -199,17 +199,15 @@ class ModelLauncher():
                   self.age_feature, self.dem_feature]
         worker = f"/homes/agesak/thesis/analysis/run_models.py"
         memory = ModelLauncher.memory_dict[short_name]
-        runtime = ModelLauncher.runtime_dict[short_name]
         if (self.int_cause == "y34") & (short_name == "rf"):
-            memory = 65
-            runtime = "96:00:00"
+            memory = 77
         if (self.int_cause == "y34") & (short_name == "xgb"):
             memory = 25
         submit_mcod(jobname, "python", worker, cores=4,
                     memory=f"{memory}G",
                     params=params, verbose=True, logging=True,
                     jdrive=False, queue="long.q",
-                    runtime=runtime)
+                    runtime=ModelLauncher.runtime_dict[short_name])
 
     def get_best_model(self, short_name, age_group_id):
         if age_group_id:

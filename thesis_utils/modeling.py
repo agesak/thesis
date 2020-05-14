@@ -158,10 +158,12 @@ def create_train_test(df, test, int_cause, age_group_id):
     return train_df, test_df, garbage_df
 
 
-def create_neural_network(dropout_rate, output_nodes):
+def create_neural_network(dropout_rate, output_nodes, hidden_layers, hidden_nodes):
     model = Sequential()
-    # see if can put in a for loop
-    model.add(Dense(output_nodes, activation='softmax'))
+    for layer in range(0, hidden_layers):
+        print_log_message(f"adding {layer} layer")
+        model.add(Dense(hidden_nodes, activation="relu"))
+    model.add(Dense(output_nodes, activation="softmax"))
     model.compile(optimizer="adam", loss="categorical_crossentropy")
     return model
 
@@ -312,9 +314,12 @@ def nn_params(model):
     clf__batch_size = df.loc[df[
         f"{model}"] == "clf__batch_size",
         f"{model}_value"].str.split(",")[1]
-    keys = "clf__epochs", "clf__batch_size"
+    nodes = df.loc[df[
+        f"{model}"] == "nodes",
+        f"{model}_value"].str.split(",")[2]
+    keys = "clf__epochs", "clf__batch_size", "nodes"
     params = [dict(zip(keys, combo)) for combo in itertools.product(
-        clf__epochs, clf__batch_size)]
+        clf__epochs, clf__batch_size, nodes)]
 
     return params
 

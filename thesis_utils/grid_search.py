@@ -84,8 +84,11 @@ def format_gridsearch_params(model_name, param):
     if not all(x == "nan" for x in str_cols):
         if "nan" in str_cols:
             str_cols.remove("nan")
-        for col in str_cols:
-            params[col] = [params[col]]
+        # neural network - ignore number nodes row
+        if model_name != "nn":
+            for col in str_cols:
+                params[col] = [params[col]]
+            
     return params
 
 
@@ -106,6 +109,13 @@ def run_pipeline(model, short_name, model_df, model_params,
         cv_params = model['parameters']
     elif short_name == "nn":
 
+        df = pd.read_csv("/homes/agesak/thesis/maps/parameters.csv")
+        hidden_layers = int(df.query("{0}=='hidden_layers'".format(f"{short_name}_layers"))[f"{short_name}_layers_value"])
+
+        hidden_nodes = int(model_params["nodes"])
+        print_log_message("deleting nodes from keras gridsearch params")
+        del model_params["nodes"]
+
         pipeline = Pipeline([
             ("bow", CountVectorizer(lowercase=False)),
             ("dense", FunctionTransformer(
@@ -113,7 +123,10 @@ def run_pipeline(model, short_name, model_df, model_params,
             ("clf", KerasClassifier(build_fn=create_neural_network,
                                     dropout_rate=0.2,
                                     output_nodes=len(
-                                        model_df.cause_id.unique())))
+                                        model_df.cause_id.unique()),
+                                    hidden_layers=hidden_layers,
+                                    hidden_nodes=hidden_nodes
+                                    ))
         ])
 
         cv_params = model_params.copy()
@@ -139,7 +152,7 @@ def run_pipeline(model, short_name, model_df, model_params,
                "concordance": scorer_list[6]}
 
     gscv = GridSearchCV(pipeline, cv_params, cv=5,
-                        scoring=scoring, n_jobs=3, pre_dispatch=6,
+                        scoring=scoring, n_jobs=1, pre_dispatch=6,
                         refit="concordance", verbose=6)
     if age_feature:
         grid_results = gscv.fit(
