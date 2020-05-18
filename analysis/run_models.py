@@ -21,10 +21,6 @@ def main(model_param, model_name, write_dir, train_dir, int_cause, short_name, a
     model_df = pd.read_csv(
         f"{train_dir}/train_df.csv")[["cause_id",f"{x_col}",f"{int_cause}"]]
     print_log_message("formatting parameters")
-    # if short_name == "nn":
-    #     print_log_message("only keeping epoch and batch size")
-    #     # THIS WILL BREAK IF I HAVE MORE THINGS AFTER NODES IN MAPS.CSV
-    #     model_param = "_".join(param.split("_")[:-1])
     model_params = format_gridsearch_params(short_name, model_param)
 
     print_log_message("running pipeline")

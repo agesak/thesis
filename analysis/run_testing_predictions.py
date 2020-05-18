@@ -17,7 +17,7 @@ def main(best_model_dir, dataset_dir, testing_model_dir, best_model_params, int_
         x_col = "dem_info"
     else:
         x_col = "cause_info"
-    # read in model object of best model
+    # read in model object of best models
     grid_results = joblib.load(f"{best_model_dir}/grid_results.pkl")
 
     # read in test dataset

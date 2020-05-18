@@ -22,7 +22,6 @@ from sklearn.preprocessing import FunctionTransformer
 from keras.wrappers.scikit_learn import KerasClassifier
 
 
-
 def create_custom_scorers(int_cause):
     """
     """
@@ -84,16 +83,20 @@ def format_gridsearch_params(model_name, param):
     if not all(x == "nan" for x in str_cols):
         if "nan" in str_cols:
             str_cols.remove("nan")
-        # neural network - ignore number nodes row
+        # neural network - columns without dtype are feed
+        # to model compiler instead of gridsearch
         if model_name != "nn":
             for col in str_cols:
                 params[col] = [params[col]]
-            
+
     return params
 
 
 def run_pipeline(model, short_name, model_df, model_params,
                  write_dir, int_cause, age_feature, dem_feature):
+
+    n_jobs_dict = {"nn":2, "rf":-1, "xgb":-1, "bernoulli_nb":-1,
+                    "multi_nb":-1, "complement_nb":-1}
 
     if short_name == "svm_bag":
         model = {'model': BaggingClassifier,
@@ -109,12 +112,23 @@ def run_pipeline(model, short_name, model_df, model_params,
         cv_params = model['parameters']
     elif short_name == "nn":
 
-        df = pd.read_csv("/homes/agesak/thesis/maps/parameters.csv")
-        hidden_layers = int(df.query("{0}=='hidden_layers'".format(f"{short_name}_layers"))[f"{short_name}_layers_value"])
+        hidden_layers = int(model_params["hidden_layers"])
+        print_log_message(
+            "deleting hidden layers from keras gridsearch params")
+        del model_params["hidden_layers"]
 
-        hidden_nodes = int(model_params["nodes"])
-        print_log_message("deleting nodes from keras gridsearch params")
-        del model_params["nodes"]
+        hidden_nodes_1 = int(model_params["hidden_nodes_1"])
+        print_log_message("deleting hidden nodes 1 from keras gridsearch params")
+        del model_params["hidden_nodes_1"]
+        # hidden_nodes = [hidden_nodes_1]
+
+        if hidden_layers > 1:
+            hidden_nodes_2 = int(model_params["hidden_nodes_2"])
+            print_log_message("deleting hidden nodes 2 from keras gridsearch params")
+            # hidden_nodes = hidden_nodes + [hidden_nodes_2]
+        else:
+            hidden_nodes_2 = None
+        del model_params["hidden_nodes_2"]
 
         pipeline = Pipeline([
             ("bow", CountVectorizer(lowercase=False)),
@@ -125,11 +139,13 @@ def run_pipeline(model, short_name, model_df, model_params,
                                     output_nodes=len(
                                         model_df.cause_id.unique()),
                                     hidden_layers=hidden_layers,
-                                    hidden_nodes=hidden_nodes
+                                    hidden_nodes_1=hidden_nodes_1,
+                                    hidden_nodes_2=hidden_nodes_2
                                     ))
         ])
 
         cv_params = model_params.copy()
+        print_log_message(f"cv_params are {cv_params}")
 
     else:
         pipeline = Pipeline([
@@ -151,9 +167,12 @@ def run_pipeline(model, short_name, model_df, model_params,
                "cccsmfa": scorer_list[5],
                "concordance": scorer_list[6]}
 
+    print_log_message("creating gridsearch object")
     gscv = GridSearchCV(pipeline, cv_params, cv=5,
-                        scoring=scoring, n_jobs=1, pre_dispatch=6,
+                        scoring=scoring, n_jobs=n_jobs_dict[short_name], pre_dispatch=6,
                         refit="concordance", verbose=6)
+
+    print_log_message("fitting model")
     if age_feature:
         grid_results = gscv.fit(
             model_df["cause_age_info"], model_df["cause_id"])

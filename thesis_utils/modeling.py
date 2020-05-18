@@ -19,6 +19,7 @@ from cod_prep.claude.configurator import Configurator
 from db_queries import get_location_metadata
 
 from thesis_utils.directories import get_limited_use_directory
+from thesis_utils.misc import get_country_names
 from thesis_data_prep.launch_mcod_mapping import MCauseLauncher
 
 AGG_AGES = [39, 24, 224, 229, 47, 268, 294]
@@ -107,7 +108,7 @@ def drop_age_restricted_cols(df):
     return df
 
 
-def create_train_test(df, test, int_cause, age_group_id):
+def create_train_test(df, test, int_cause, age_group_id, most_detailed):
     """Create train/test datasets, if running tests,
     randomly sample from all locations so models don't take forever to run"""
     locs = get_location_metadata(gbd_round_id=6, location_set_id=35)
@@ -119,6 +120,9 @@ def create_train_test(df, test, int_cause, age_group_id):
     df = df[keep_cols]
     df = create_age_bins(df, AGG_AGES)
     df = drop_age_restricted_cols(df)
+    if not most_detailed:
+        print_log_message("aggregating to country level")
+        df = get_country_names(df)
     if age_group_id:
         print_log_message(f"subsetting to just age group id {age_group_id}")
         df = df.loc[df["age_group_id"] == age_group_id]
@@ -158,12 +162,18 @@ def create_train_test(df, test, int_cause, age_group_id):
     return train_df, test_df, garbage_df
 
 
-def create_neural_network(dropout_rate, output_nodes, hidden_layers, hidden_nodes):
+def create_neural_network(dropout_rate, output_nodes, hidden_layers, hidden_nodes_1, hidden_nodes_2):
+    if hidden_nodes_2:
+        hidden_nodes = [hidden_nodes_1, hidden_nodes_2]
+    else:
+        hidden_nodes = [hidden_nodes_1]
+    node_dict = dict(zip(range(0, hidden_layers), hidden_nodes))
     model = Sequential()
     for layer in range(0, hidden_layers):
         print_log_message(f"adding {layer} layer")
-        model.add(Dense(hidden_nodes, activation="relu"))
+        model.add(Dense(node_dict[layer], activation="relu"))
     model.add(Dense(output_nodes, activation="softmax"))
+    print_log_message("compiling model")
     model.compile(optimizer="adam", loss="categorical_crossentropy")
     return model
 
@@ -314,12 +324,18 @@ def nn_params(model):
     clf__batch_size = df.loc[df[
         f"{model}"] == "clf__batch_size",
         f"{model}_value"].str.split(",")[1]
-    nodes = df.loc[df[
-        f"{model}"] == "nodes",
+    hidden_nodes_1 = df.loc[df[
+        f"{model}"] == "hidden_nodes_1",
         f"{model}_value"].str.split(",")[2]
-    keys = "clf__epochs", "clf__batch_size", "nodes"
+    hidden_layers = df.loc[df[
+        f"{model}"] == "hidden_layers",
+        f"{model}_value"].str.split(",")[3]
+    hidden_nodes_2 = df.loc[df[
+        f"{model}"] == "hidden_nodes_2",
+        f"{model}_value"].str.split(",")[4]
+    keys = "clf__epochs", "clf__batch_size", "hidden_nodes_1", "hidden_layers", "hidden_nodes_2"
     params = [dict(zip(keys, combo)) for combo in itertools.product(
-        clf__epochs, clf__batch_size, nodes)]
+        clf__epochs, clf__batch_size, hidden_nodes_1, hidden_layers, hidden_nodes_2)]
 
     return params
 

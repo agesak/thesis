@@ -11,8 +11,8 @@ from thesis_utils.misc import str2bool, remove_if_output_exists, chunks
 from thesis_utils.modeling import (read_in_data, create_train_test,
                                    naive_bayes_params,
                                    format_argparse_params)
-from thesis_utils.model_evaluation import (get_best_fit,
-                                           format_best_fit_params)
+from thesis_utils.model_evaluation import get_best_fit
+                                           # format_best_fit_params)
 
 
 class ModelLauncher():
@@ -27,15 +27,15 @@ class ModelLauncher():
                   "nn": "KerasClassifier"}
     param_dict = {"rf": 4, "multi_nb": 1, "bernoulli_nb": 1,
                   "complement_nb": 1, "svm": 5, "svm_bag": 8, "gbt": 4,
-                  "xgb": 5, "nn": 3}
-    memory_dict = {"rf": 65, "multi_nb": 20, "bernoulli_nb": 20,
-                   "complement_nb": 20, "gbt": 30, "xgb": 20,
-                   "svm": 40, "svm_bag": 20, "nn": 75}
-    runtime_dict = {"rf": "96:00:00", "multi_nb": "1:00:00",
+                  "xgb": 5, "nn": 5}
+    memory_dict = {"rf": 150, "multi_nb": 20, "bernoulli_nb": 20,
+                   "complement_nb": 20, "gbt": 30, "xgb": 40,
+                   "svm": 40, "svm_bag": 20, "nn": 350}
+    runtime_dict = {"rf": "140:00:00", "multi_nb": "1:00:00",
                     "complement_nb": "1:00:00", "bernoulli_nb": "1:00:00",
-                    "gbt": "96:00:00", "xgb": "96:00:00",
+                    "gbt": "96:00:00", "xgb": "122:00:00",
                     "svm": "120:00:00", "svm_bag": "24:00:00",
-                    "nn": "36:00:00"}
+                    "nn": "120:00:00"}
     df_size_dict = {"x59": 1056994, "y34": 1708834}
     num_datasets = 500
     # num_datasets = 10
@@ -52,6 +52,7 @@ class ModelLauncher():
         self.age_feature = self.run_filters["age_feature"]
         self.by_age = self.run_filters["by_age"]
         self.dem_feature = self.run_filters["dem_feature"]
+        self.most_detailed = self.run_filters["most_detailed"]
         if self.run_filters["description"] is None:
             self.description = "{:%Y_%m_%d}".format(datetime.datetime.now())
             if self.test:
@@ -78,7 +79,7 @@ class ModelLauncher():
         makedirs_safely(write_dir)
         train_df, test_df, int_cause_df = create_train_test(
             df, test=self.test, int_cause=self.int_cause,
-            age_group_id=age_group_id)
+            age_group_id=age_group_id, most_detailed=self.most_detailed)
         print_log_message(f"writing train/test to df for {age_group_id}")
         train_df.to_csv(f"{write_dir}/train_df.csv", index=False)
         test_df.to_csv(f"{write_dir}/test_df.csv", index=False)
@@ -98,7 +99,7 @@ class ModelLauncher():
         # if ModelLauncher.num_datasets == 10:
         #     numbers = (list(chunks(range(1, 11), 10)))
         if ModelLauncher.num_datasets == 500:
-            numbers = (list(chunks(range(1, 501), 250)))
+            numbers = (list(chunks(range(1, 501), 500)))
             dataset_dict = dict(zip(range(0, len(numbers)), numbers))
             holds_dict = {key: [] for key in dataset_dict.keys()}
             for batch in dataset_dict.keys():
@@ -142,7 +143,7 @@ class ModelLauncher():
             dataset_dir = f"{self.dataset_dir}/{age_group_id}"
             testing_model_dir = f"{dataset_dir}/{short_name}"
         else:
-            best_model_dir = f"{self.model_dir}/{short_name}/model_{best_model_params}"
+            best_model_dir = f"{self.model_dir}/{short_name}/country_model_{best_model_params}"
             testing_model_dir = f"{self.dataset_dir}/{short_name}"
             dataset_dir = self.dataset_dir
 
@@ -152,7 +153,7 @@ class ModelLauncher():
         # if ModelLauncher.num_datasets == 10:
         #     numbers = (list(chunks(range(1, 11), 5)))
         if ModelLauncher.num_datasets == 500:
-            numbers = (list(chunks(range(1, 501), 250)))
+            numbers = (list(chunks(range(1, 501), 500)))
             dataset_dict = dict(zip(range(0, len(numbers)), numbers))
             holds_dict = {key: [] for key in dataset_dict.keys()}
             for batch in dataset_dict.keys():
@@ -186,8 +187,8 @@ class ModelLauncher():
             jobname = f"{short_name}_{self.int_cause}_{model_param}_{age_group_id}"
             model_dir = f"{self.model_dir}/{age_group_id}"
         else:
-            write_dir = f"{self.model_dir}/{short_name}/model_{model_param}"
-            jobname = f"{short_name}_{self.int_cause}_{model_param}"
+            write_dir = f"{self.model_dir}/{short_name}/country_model_{model_param}"
+            jobname = f"{short_name}_country_{self.int_cause}_{model_param}"
             model_dir = self.model_dir
         makedirs_safely(write_dir)
         # remove previous model runs
@@ -199,10 +200,6 @@ class ModelLauncher():
                   self.age_feature, self.dem_feature]
         worker = f"/homes/agesak/thesis/analysis/run_models.py"
         memory = ModelLauncher.memory_dict[short_name]
-        if (self.int_cause == "y34") & (short_name == "rf"):
-            memory = 77
-        if (self.int_cause == "y34") & (short_name == "xgb"):
-            memory = 25
         submit_mcod(jobname, "python", worker, cores=4,
                     memory=f"{memory}G",
                     params=params, verbose=True, logging=True,
@@ -212,13 +209,13 @@ class ModelLauncher():
     def get_best_model(self, short_name, age_group_id):
         if age_group_id:
             model_dir = f"{self.model_dir}/{age_group_id}"
-            dataset_dir = f"self.dataset_dir/{age_group_id}"
+            dataset_dir = f"{self.dataset_dir}/{age_group_id}"
         else:
             model_dir = self.model_dir
             dataset_dir = self.dataset_dir
 
-        best_fit = get_best_fit(model_dir=model_dir, short_name=short_name)
-        best_model_params = format_best_fit_params(best_fit, short_name)
+        best_model_params = get_best_fit(model_dir=model_dir, short_name=short_name)
+        # best_model_params = format_best_fit_params(best_fit, short_name)
         num_datasets = len([x for i, x in enumerate(
             os.listdir(dataset_dir)) if re.search(
             "dataset_[0-9]{0,3}.csv", x)])
@@ -319,6 +316,9 @@ if __name__ == "__main__":
     parser.add_argument("--dem_feature", type=str2bool, nargs="?",
                         const=True, default=False, required=True,
                         help="include asyl as a feature in bow")
+    parser.add_argument("--most_detailed", type=str2bool, nargs="?",
+                    const=True, default=False, required=True,
+                    help="run model at most detailed location level")
     # not required for train_test/create_test_datasets
     parser.add_argument(
         "--model_type", help="short-hand name for ML classifier",

@@ -35,7 +35,7 @@ def remove_if_output_exists(file_dir, file):
 def get_country_names(df):
     """Map all subnationals to country-level
     Arguments:
-            df: df with location_id column with some subnational level rows
+            df: df with location_id column that has some subnational level rows
     Returns:
         df - most_detailed_id column with most-detailed location id for a given GBD location
            - location_name column with only country-level location names for all location ids
