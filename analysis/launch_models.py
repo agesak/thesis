@@ -12,7 +12,6 @@ from thesis_utils.modeling import (read_in_data, create_train_test,
                                    naive_bayes_params,
                                    format_argparse_params)
 from thesis_utils.model_evaluation import get_best_fit
-                                           # format_best_fit_params)
 
 
 class ModelLauncher():
@@ -151,7 +150,8 @@ class ModelLauncher():
         worker = f"/homes/agesak/thesis/analysis/run_testing_predictions.py"
 
         # if ModelLauncher.num_datasets == 10:
-        #     numbers = (list(chunks(range(1, 11), 5)))
+        #     numbers = (list(chunks(range(1, 11), 10)))
+            # numbers = [range(1, 2)]
         if ModelLauncher.num_datasets == 500:
             numbers = (list(chunks(range(1, 501), 500)))
             dataset_dict = dict(zip(range(0, len(numbers)), numbers))
@@ -172,7 +172,7 @@ class ModelLauncher():
                               self.dem_feature]
                     jobname = f"{model_name}_{self.int_cause}_predictions_dataset_{dataset_num}_{best_model_params}"
                     jid = submit_mcod(jobname, "python", worker,
-                                      cores=4, memory="25G",
+                                      cores=4, memory="30G",
                                       params=params, verbose=True,
                                       logging=True, jdrive=False,
                                       queue="long.q", holds=holds_dict[batch])
@@ -200,6 +200,8 @@ class ModelLauncher():
                   self.age_feature, self.dem_feature]
         worker = f"/homes/agesak/thesis/analysis/run_models.py"
         memory = ModelLauncher.memory_dict[short_name]
+        if (self.int_cause == "y34") & (short_name == "rf"):
+            memory = "250"
         submit_mcod(jobname, "python", worker, cores=4,
                     memory=f"{memory}G",
                     params=params, verbose=True, logging=True,
@@ -215,12 +217,11 @@ class ModelLauncher():
             dataset_dir = self.dataset_dir
 
         best_model_params = get_best_fit(model_dir=model_dir, short_name=short_name)
-        # best_model_params = format_best_fit_params(best_fit, short_name)
         num_datasets = len([x for i, x in enumerate(
             os.listdir(dataset_dir)) if re.search(
             "dataset_[0-9]{0,3}.csv", x)])
         failed = ModelLauncher.num_datasets - num_datasets
-        assert num_datasets == ModelLauncher.num_datasets, f"{failed} jobs creating test datasets failed"
+        # assert num_datasets == ModelLauncher.num_datasets, f"{failed} jobs creating test datasets failed"
         return best_model_params
 
     def launch(self):

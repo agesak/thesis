@@ -117,7 +117,7 @@ def main(data_dir, predicted_test_dir, int_cause, short_name, model_name, age_fe
     print("writing to df")
     unobserved_df.to_csv(f"{predicted_test_dir}/model_predictions.csv")
     joblib.dump(
-        model_fit, f"{predicted_test_dir}/model_fit.csv")
+        model_fit, f"{predicted_test_dir}/model_fit.pkl")
     print("wrote model fit")
 
 

@@ -1,6 +1,9 @@
 """predict on test datasets"""
 import pandas as pd
 import sys
+import dill
+
+from cod_prep.utils.misc import print_log_message
 from thesis_utils.model_evaluation import (calculate_cccsmfa,
                                            calculate_concordance)
 from thesis_utils.misc import str2bool
@@ -18,12 +21,15 @@ def main(best_model_dir, dataset_dir, testing_model_dir, best_model_params, int_
     else:
         x_col = "cause_info"
     # read in model object of best models
+    print_log_message("reading in grid results object")
     grid_results = joblib.load(f"{best_model_dir}/grid_results.pkl")
 
     # read in test dataset
+    print_log_message("reading in data")
     dataset = pd.read_csv(f"{dataset_dir}/dataset_{dataset_num}.csv")
 
     # predit on test dataset
+    print_log_message("predicting")
     dataset["predicted"] = grid_results.predict(dataset[f"{x_col}"])
 
     macro_precision = precision_score(y_true=dataset.cause_id,

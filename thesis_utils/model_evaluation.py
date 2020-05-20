@@ -68,8 +68,12 @@ def get_best_fit(model_dir, short_name):
     for root, dirs, files in os.walk(os.path.join(
             os.path.join(model_dir, short_name))):
         for stats_dir in dirs:
-            df = pd.read_csv(os.path.join(
-                model_dir, short_name, stats_dir, "summary_stats.csv"))
+            if os.path.exists(os.path.join(
+                model_dir, short_name, stats_dir, "summary_stats.csv")):
+                df = pd.read_csv(os.path.join(
+                    model_dir, short_name, stats_dir, "summary_stats.csv"))
+            else:
+                df = pd.DataFrame()
             df["model_params"] = stats_dir
             dfs.append(df)
     df = pd.concat(dfs, sort=True, ignore_index=True)
