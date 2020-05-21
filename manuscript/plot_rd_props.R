@@ -48,7 +48,7 @@ plot_data <- function(int_cause, short_name){
     labs(fill="Model Type") + scale_y_continuous(expand = c(0,0))
   
   dir.create(paste0("/home/j/temp/agesak/thesis/figures/", DATE, "/"), showWarnings = FALSE)
-  ggsave(paste0("/home/j/temp/agesak/thesis/figures/", DATE, "/", DATE, "_", int_cause, "_", short_name, "_compare_results.pdf"), plot, dpi=300, height=12, width=20)
+  ggsave(paste0("/home/j/temp/agesak/thesis/figures/", DATE, "/", DATE, "_", int_cause, "_", short_name, "_compare_results.pdf"), plot, dpi=300, height=12, width=22)
   
 }
 for (int_cause in c("x59", "y34")){

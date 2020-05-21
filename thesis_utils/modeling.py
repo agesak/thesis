@@ -162,7 +162,7 @@ def create_train_test(df, test, int_cause, age_group_id, most_detailed):
     return train_df, test_df, garbage_df
 
 
-def create_neural_network(dropout_rate, output_nodes, hidden_layers, hidden_nodes_1, hidden_nodes_2):
+def create_neural_network(output_nodes, hidden_layers, hidden_nodes_1, hidden_nodes_2):
     if hidden_nodes_2:
         hidden_nodes = [hidden_nodes_1, hidden_nodes_2]
     else:

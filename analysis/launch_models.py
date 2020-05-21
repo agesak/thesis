@@ -131,9 +131,12 @@ class ModelLauncher():
         params = [model_dir, predicted_test_dir, self.int_cause,
                   short_name, ModelLauncher.model_dict[short_name], self.age_feature, self.dem_feature]
         worker = f"/homes/agesak/thesis/analysis/run_unobserved_predictions.py"
-        submit_mcod(jobname, "python", worker, cores=2, memory="12G",
+        memory = "12G"
+        if (short_name=="nn"):
+            memory = "350G"
+        submit_mcod(jobname, "python", worker, cores=2, memory=memory,
                     params=params, verbose=True, logging=True,
-                    jdrive=False, queue="i.q")
+                    jdrive=False, queue="long.q",runtime=ModelLauncher.runtime_dict[short_name])
 
     def launch_testing_models(self, model_name, short_name, best_model_params, age_group_id=None):
 
@@ -155,6 +158,9 @@ class ModelLauncher():
         if ModelLauncher.num_datasets == 500:
             numbers = (list(chunks(range(1, 501), 500)))
             dataset_dict = dict(zip(range(0, len(numbers)), numbers))
+            # numbers = [437, 474, 477]
+            # dataset_dict = {}
+            # dataset_dict[0] = numbers
             holds_dict = {key: [] for key in dataset_dict.keys()}
             for batch in dataset_dict.keys():
                 datasets = dataset_dict[batch]
@@ -171,8 +177,11 @@ class ModelLauncher():
                               self.int_cause, dataset_num, self.age_feature,
                               self.dem_feature]
                     jobname = f"{model_name}_{self.int_cause}_predictions_dataset_{dataset_num}_{best_model_params}"
+                    memory = "40G"
+                    if (self.int_cause=="y34") & (short_name=="nn"):
+                        memory = "90G"
                     jid = submit_mcod(jobname, "python", worker,
-                                      cores=4, memory="30G",
+                                      cores=4, memory=memory,
                                       params=params, verbose=True,
                                       logging=True, jdrive=False,
                                       queue="long.q", holds=holds_dict[batch])
@@ -221,8 +230,16 @@ class ModelLauncher():
             os.listdir(dataset_dir)) if re.search(
             "dataset_[0-9]{0,3}.csv", x)])
         failed = ModelLauncher.num_datasets - num_datasets
-        # assert num_datasets == ModelLauncher.num_datasets, f"{failed} jobs creating test datasets failed"
+        assert num_datasets == ModelLauncher.num_datasets, f"{failed} jobs creating test datasets failed"
         return best_model_params
+
+    def check_datasets_exist(model_path):
+        summaries = []
+        for dataset_num in range(1, ModelLauncher.num_datasets+1, 1):
+            if not os.path.exists(f"{model_path}/dataset_{dataset_num}_summary_stats.csv"):
+                summaries.append(dataset_num)
+        assert len(summaries)==0, f"datasets {summaries} failed"
+
 
     def launch(self):
         if self.phase == "train_test":

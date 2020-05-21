@@ -135,7 +135,6 @@ def run_pipeline(model, short_name, model_df, model_params,
             ("dense", FunctionTransformer(
                 lambda x: x.todense(), accept_sparse=True)),
             ("clf", KerasClassifier(build_fn=create_neural_network,
-                                    dropout_rate=0.2,
                                     output_nodes=len(
                                         model_df.cause_id.unique()),
                                     hidden_layers=hidden_layers,
