@@ -120,12 +120,10 @@ def run_pipeline(model, short_name, model_df, model_params,
         hidden_nodes_1 = int(model_params["hidden_nodes_1"])
         print_log_message("deleting hidden nodes 1 from keras gridsearch params")
         del model_params["hidden_nodes_1"]
-        # hidden_nodes = [hidden_nodes_1]
 
         if hidden_layers > 1:
             hidden_nodes_2 = int(model_params["hidden_nodes_2"])
             print_log_message("deleting hidden nodes 2 from keras gridsearch params")
-            # hidden_nodes = hidden_nodes + [hidden_nodes_2]
         else:
             hidden_nodes_2 = None
         del model_params["hidden_nodes_2"]

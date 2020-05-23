@@ -57,12 +57,15 @@ def main(best_model_dir, dataset_dir, testing_model_dir, best_model_params, int_
                        "Micro Precision": [micro_precision],
                        "Accuracy": [accuracy],
                        "best_model_params": [best_model_params]})
+    print_log_message("writing dfs")
     df.to_csv(
         f"{testing_model_dir}/dataset_{dataset_num}_summary_stats.csv", index=False)
     dataset.to_csv(
         f"{testing_model_dir}/dataset_{dataset_num}_predictions.csv", index=False)
-    joblib.dump(
-        grid_results, f"{testing_model_dir}/dataset_{dataset_num}_grid_results.pkl")
+    # the model object is huge for rf! 
+    if best_model_dir.split("/")[-1] != "rf":
+        joblib.dump(
+            grid_results, f"{testing_model_dir}/dataset_{dataset_num}_grid_results.pkl")
 
 
 if __name__ == '__main__':

@@ -5,6 +5,7 @@ from functools import reduce
 from db_queries import get_location_metadata, get_cause_metadata
 from cod_prep.downloaders import pretty_print, create_age_bins
 from cod_prep.claude.claude_io import makedirs_safely
+from cod_prep.utils.misc import print_log_message
 from thesis_utils.misc import get_country_names
 
 DATE = "2020_05_14"
@@ -82,6 +83,29 @@ def choose_best_naive_bayes(int_cause):
 
     return best_model
 
+
+def choose_best_model(int_cause):
+
+    bernoulli_df = pd.read_csv(f"/ihme/cod/prep/mcod/process_data/{int_cause}/thesis/sample_dirichlet/{DATE}/bernoulli_nb/model_metrics_summary.csv")
+    bernoulli_df.rename(columns= lambda x: x + '_bernouli_nb' if x not in ['Evaluation metrics'] else x, inplace=True)
+
+    nn_df = pd.read_csv(f"/ihme/cod/prep/mcod/process_data/{int_cause}/thesis/sample_dirichlet/{DATE}/nn/model_metrics_summary.csv")
+    nn_df.rename(columns= lambda x: x + '_nn'  if x not in ['Evaluation metrics'] else x, inplace=True)
+
+    rf_df = pd.read_csv(f"/ihme/cod/prep/mcod/process_data/{int_cause}/thesis/sample_dirichlet/{DATE}/rf/model_metrics_summary.csv")
+    rf_df.rename(columns= lambda x: x + '_rf'  if x not in ['Evaluation metrics'] else x, inplace=True)
+
+    xgb_df = pd.read_csv(f"/ihme/cod/prep/mcod/process_data/{int_cause}/thesis/sample_dirichlet/{DATE}/xgb/model_metrics_summary.csv")
+    xgb_df.rename(columns= lambda x: x + '_xgb'  if x not in ['Evaluation metrics'] else x, inplace=True)
+
+    df = reduce(lambda left,right: pd.merge(left,right,on=['Evaluation metrics'],
+                                                how='outer'), [bernoulli_df, nn_df, rf_df, xgb_df])
+
+    makedirs_safely(f"/home/j/temp/agesak/thesis/model_results/test_set_summaries/{DATE}/")
+    df.to_csv(f"/home/j/temp/agesak/thesis/model_results/{DATE}/{int_cause}_model_summary.csv", index=False)
+    
+
+
 # will only need to run this once ever tbh
 # for int_cause in ["x59", "y34"]:
 #     rd = format_gbd_results(int_cause)
@@ -91,24 +115,37 @@ def choose_best_naive_bayes(int_cause):
 
 model_dict = {"x59":"", "y34":""}
 
-for int_cause in ["x59", "y34"]:
+# for int_cause in ["x59", "y34"]:
+#     best_model = choose_best_naive_bayes(int_cause)
+#     best_model = best_model.replace("Mean_", "")
+#     model_dict.update({f"{int_cause}":best_model})
+
+def update_model_dict(int_cause):
     best_model = choose_best_naive_bayes(int_cause)
     best_model = best_model.replace("Mean_", "")
     model_dict.update({f"{int_cause}":best_model})
+    return model_dict
 
-
-
-for int_cause in ["x59", "y34"]:    
-    short_name = model_dict[int_cause]
-    df = format_classifier_results(int_cause, short_name)
-    rd = format_gbd_results(int_cause)
-    rd.rename(columns={"prop":"prop_GBD2019", f"{int_cause}":f"{int_cause}_deaths_GBD2019"}, inplace=True)
-    # merge on 2019 results
-    # df = df.merge(rd, on=["age_group_id", "sex_id", "location_id", "year_id", "cause_id"], how="left")
-    df = df.merge(rd, on=["age_group_id", "sex_id", "location_id", "year_id", "cause_id"], how="outer")
-    df.rename(columns={"prop":"prop_thesis", f"{int_cause}":f"{int_cause}_deaths_thesis"}, inplace=True)
-    df = pretty_print(df)
-    df = df.fillna(0)
-    makedirs_safely(f"/home/j/temp/agesak/thesis/model_results/{DATE}")
-    df.to_csv(
-        f"/home/j/temp/agesak/thesis/model_results/{DATE}/{DATE}_{int_cause}_{short_name}_predictions.csv", index=False)
+# inconsistency here with short name for naive bayes
+# here short name for all is "nb", because only the 
+# best type of naive bayes will be used for final results
+for int_cause in ["x59", "y34"]:
+    print_log_message(f"working on {int_cause}")
+    for short_name in ["nn"]:
+        print_log_message(f"working on {short_name}")
+        if short_name == "nb":
+            model_dict = update_model_dict(int_cause)
+            # get the short name associated with the best naive bayes model
+            short_name = model_dict[int_cause]
+        df = format_classifier_results(int_cause, short_name)
+        rd = format_gbd_results(int_cause)
+        rd.rename(columns={"prop":"prop_GBD2019", f"{int_cause}":f"{int_cause}_deaths_GBD2019"}, inplace=True)
+        # merge on 2019 results
+        # df = df.merge(rd, on=["age_group_id", "sex_id", "location_id", "year_id", "cause_id"], how="left")
+        df = df.merge(rd, on=["age_group_id", "sex_id", "location_id", "year_id", "cause_id"], how="outer")
+        df.rename(columns={"prop":"prop_thesis", f"{int_cause}":f"{int_cause}_deaths_thesis"}, inplace=True)
+        df = pretty_print(df)
+        df = df.fillna(0)
+        makedirs_safely(f"/home/j/temp/agesak/thesis/model_results/{DATE}")
+        df.to_csv(
+            f"/home/j/temp/agesak/thesis/model_results/{DATE}/{DATE}_{int_cause}_{short_name}_predictions.csv", index=False)

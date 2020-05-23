@@ -4,8 +4,10 @@ library(data.table)
 library(stringr)
 library(ggplot2)
 
-classifiers <- list("bernoulli_nb"="Bernoulli Naive Bayes")
+# classifiers <- list("bernoulli_nb"="Bernoulli Naive Bayes")
 # classifiers <- list("rf"="Random Forest")
+# classifiers <- list("nn"="Neural Network")
+classifiers <- list("xgb"="Gradient Boosting")
 DATE <- "2020_05_14"
 
 prep_data <- function(df, group_cols, int_cause_col, prop_type){
@@ -25,12 +27,11 @@ plot_data <- function(int_cause, short_name){
   rd <- prep_data(df=paste0("/home/j/temp/agesak/thesis/model_results/", int_cause, "_gbd_2019.csv"),
                   group_cols="cause_name", int_cause_col = int_cause, prop_type="GBD 2019")
   df <- prep_data(df=paste0("/home/j/temp/agesak/thesis/model_results/", DATE, "/", DATE, "_", int_cause, "_", short_name, "_predictions.csv"),
-                  group_cols="cause_name", int_cause_col = paste0(int_cause, "_deaths_thesis"), prop_type="Naive Bayes")
-  # classifiers[[short_name]]
+                  group_cols="cause_name", int_cause_col = paste0(int_cause, "_deaths_thesis"), prop_type=classifiers[[short_name]])
   all_df <- rbind(rd, df)
   colors <- c("GBD 2019"="paleturquoise1", classifier_name="rosybrown1")
-  names(colors)[c(2)] <- c("Naive Bayes")
-  all_df$prop_type <- factor(all_df$prop_type, levels = c("GBD 2019", "Naive Bayes"))
+  names(colors)[c(2)] <- c(classifiers[[short_name]])
+  all_df$prop_type <- factor(all_df$prop_type, levels = c("GBD 2019", classifiers[[short_name]]))
   
   plot <- ggplot(all_df, aes(x=reorder(cause_name, -prop), y=prop, fill=prop_type)) +
     geom_bar(position=position_dodge(), stat="identity", colour='black') + 
@@ -51,6 +52,7 @@ plot_data <- function(int_cause, short_name){
   ggsave(paste0("/home/j/temp/agesak/thesis/figures/", DATE, "/", DATE, "_", int_cause, "_", short_name, "_compare_results.pdf"), plot, dpi=300, height=12, width=22)
   
 }
+
 for (int_cause in c("x59", "y34")){
   for (short_name in names(classifiers)){
       print(paste("working on", int_cause, short_name))

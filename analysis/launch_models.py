@@ -27,9 +27,6 @@ class ModelLauncher():
     param_dict = {"rf": 4, "multi_nb": 1, "bernoulli_nb": 1,
                   "complement_nb": 1, "svm": 5, "svm_bag": 8, "gbt": 4,
                   "xgb": 5, "nn": 5}
-    memory_dict = {"rf": 150, "multi_nb": 20, "bernoulli_nb": 20,
-                   "complement_nb": 20, "gbt": 30, "xgb": 40,
-                   "svm": 40, "svm_bag": 20, "nn": 350}
     runtime_dict = {"rf": "140:00:00", "multi_nb": "1:00:00",
                     "complement_nb": "1:00:00", "bernoulli_nb": "1:00:00",
                     "gbt": "96:00:00", "xgb": "122:00:00",
@@ -131,12 +128,12 @@ class ModelLauncher():
         params = [model_dir, predicted_test_dir, self.int_cause,
                   short_name, ModelLauncher.model_dict[short_name], self.age_feature, self.dem_feature]
         worker = f"/homes/agesak/thesis/analysis/run_unobserved_predictions.py"
-        memory = "12G"
-        if (short_name=="nn"):
-            memory = "350G"
-        submit_mcod(jobname, "python", worker, cores=2, memory=memory,
+        memory_dict = {"rf": 12, "multi_nb": 12, "bernoulli_nb": 12,
+                       "complement_nb": 12, "xgb": 40, "svm": 40,
+                       "svm_bag": 20, "nn": 350}
+        submit_mcod(jobname, "python", worker, cores=2, memory=f"{memory_dict[short_name]}G",
                     params=params, verbose=True, logging=True,
-                    jdrive=False, queue="long.q",runtime=ModelLauncher.runtime_dict[short_name])
+                    jdrive=False, queue="long.q", runtime=ModelLauncher.runtime_dict[short_name])
 
     def launch_testing_models(self, model_name, short_name, best_model_params, age_group_id=None):
 
@@ -151,14 +148,16 @@ class ModelLauncher():
 
         makedirs_safely(testing_model_dir)
         worker = f"/homes/agesak/thesis/analysis/run_testing_predictions.py"
+        memory_dict = {"rf": 70, "multi_nb": 30, "bernoulli_nb": 30,
+                       "complement_nb": 30, "xgb": 40, "svm": 40,
+                       "svm_bag": 20, "nn": 40}
 
         # if ModelLauncher.num_datasets == 10:
         #     numbers = (list(chunks(range(1, 11), 10)))
-            # numbers = [range(1, 2)]
         if ModelLauncher.num_datasets == 500:
             numbers = (list(chunks(range(1, 501), 500)))
             dataset_dict = dict(zip(range(0, len(numbers)), numbers))
-            # numbers = [437, 474, 477]
+            # numbers = [93]
             # dataset_dict = {}
             # dataset_dict[0] = numbers
             holds_dict = {key: [] for key in dataset_dict.keys()}
@@ -177,11 +176,11 @@ class ModelLauncher():
                               self.int_cause, dataset_num, self.age_feature,
                               self.dem_feature]
                     jobname = f"{model_name}_{self.int_cause}_predictions_dataset_{dataset_num}_{best_model_params}"
-                    memory = "40G"
-                    if (self.int_cause=="y34") & (short_name=="nn"):
-                        memory = "90G"
+                    memory = memory_dict[short_name]
+                    if (self.int_cause == "y34") & (short_name == "nn"):
+                        memory = 150
                     jid = submit_mcod(jobname, "python", worker,
-                                      cores=4, memory=memory,
+                                      cores=4, memory=f"{memory}G",
                                       params=params, verbose=True,
                                       logging=True, jdrive=False,
                                       queue="long.q", holds=holds_dict[batch])
@@ -199,6 +198,10 @@ class ModelLauncher():
             write_dir = f"{self.model_dir}/{short_name}/country_model_{model_param}"
             jobname = f"{short_name}_country_{self.int_cause}_{model_param}"
             model_dir = self.model_dir
+
+        memory_dict = {"rf": 150, "multi_nb": 20, "bernoulli_nb": 20,
+                       "complement_nb": 20, "gbt": 30, "xgb": 40,
+                       "svm": 40, "svm_bag": 20, "nn": 350}
         makedirs_safely(write_dir)
         # remove previous model runs
         remove_if_output_exists(write_dir, "grid_results.pkl")
@@ -208,7 +211,7 @@ class ModelLauncher():
                   model_name, short_name, self.int_cause,
                   self.age_feature, self.dem_feature]
         worker = f"/homes/agesak/thesis/analysis/run_models.py"
-        memory = ModelLauncher.memory_dict[short_name]
+        memory = memory_dict[short_name]
         if (self.int_cause == "y34") & (short_name == "rf"):
             memory = "250"
         submit_mcod(jobname, "python", worker, cores=4,
@@ -225,7 +228,8 @@ class ModelLauncher():
             model_dir = self.model_dir
             dataset_dir = self.dataset_dir
 
-        best_model_params = get_best_fit(model_dir=model_dir, short_name=short_name)
+        best_model_params = get_best_fit(
+            model_dir=model_dir, short_name=short_name)
         num_datasets = len([x for i, x in enumerate(
             os.listdir(dataset_dir)) if re.search(
             "dataset_[0-9]{0,3}.csv", x)])
@@ -235,11 +239,10 @@ class ModelLauncher():
 
     def check_datasets_exist(model_path):
         summaries = []
-        for dataset_num in range(1, ModelLauncher.num_datasets+1, 1):
+        for dataset_num in range(1, ModelLauncher.num_datasets + 1, 1):
             if not os.path.exists(f"{model_path}/dataset_{dataset_num}_summary_stats.csv"):
                 summaries.append(dataset_num)
-        assert len(summaries)==0, f"datasets {summaries} failed"
-
+        assert len(summaries) == 0, f"datasets {summaries} failed"
 
     def launch(self):
         if self.phase == "train_test":
@@ -335,8 +338,8 @@ if __name__ == "__main__":
                         const=True, default=False, required=True,
                         help="include asyl as a feature in bow")
     parser.add_argument("--most_detailed", type=str2bool, nargs="?",
-                    const=True, default=False, required=True,
-                    help="run model at most detailed location level")
+                        const=True, default=False, required=True,
+                        help="run model at most detailed location level")
     # not required for train_test/create_test_datasets
     parser.add_argument(
         "--model_type", help="short-hand name for ML classifier",

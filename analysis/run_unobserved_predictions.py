@@ -11,6 +11,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.naive_bayes import MultinomialNB, BernoulliNB, ComplementNB
 from keras.wrappers.scikit_learn import KerasClassifier
+from xgboost import XGBClassifier
 
 DEM_COLS = ["age_group_id", "sex_id", "location_id", "year_id"]
 
@@ -134,7 +135,6 @@ def main(data_dir, predicted_test_dir, int_cause, short_name,
         f"{data_dir}/int_cause_df.csv")[DEM_COLS + ["cause_id",
                                                     f"{x_col}",
                                                     f"{int_cause}"]]
-    # need to remember explicitly what this does
     new_counts = cv.transform(unobserved_df[f"{x_col}"])
     if short_name == "nn":
         print_log_message("converting unobserved data to sparse matrix")
