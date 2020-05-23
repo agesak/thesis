@@ -105,7 +105,8 @@ def run_pipeline(model, short_name, model_df, model_params,
 
         # create pipeline with bagging classifier
         pipeline = Pipeline([
-            ("bow", CountVectorizer(lowercase=False)),
+            # token pattern allows pattern of length 1 character 
+            ("bow", CountVectorizer(lowercase=False, token_pattern = r"(?u)\b\w+\b")),
             ('name', model['model'](**model['kwargs']))
         ])
 

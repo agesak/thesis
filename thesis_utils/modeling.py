@@ -30,7 +30,7 @@ CONF = Configurator('standard')
 
 def read_in_data(int_cause, inj_garbage=False, code_system_id=None):
     """Read in and append all MCoD data"""
-    # col, zaf, and ita dont have icd 9
+    # col and ita dont have icd 9
     print_log_message("reading in not limited use data")
     if inj_garbage:
         print_log_message(
@@ -40,10 +40,10 @@ def read_in_data(int_cause, inj_garbage=False, code_system_id=None):
         subdirs = f"{int_cause}/thesis"
     # it"s not good the sources are hard-coded
     if code_system_id != 6:
-        # col, zaf, and ita dont have icd 9
+        # col and ita dont have icd 9
         udf = get_mcause_data(
             phase="format_map",
-            source=["COL_DANE", "ZAF_STATSSA", "ITA_ISTAT"],
+            source=["COL_DANE", "ITA_ISTAT"],
             sub_dirs=subdirs,
             data_type_id=9, code_system_id=code_system_id,
             assert_all_available=True,
@@ -108,12 +108,15 @@ def drop_age_restricted_cols(df):
     return df
 
 
-def create_train_test(df, test, int_cause, age_group_id, most_detailed):
+def create_train_test(df, test, int_cause, icd_feature, age_group_id, most_detailed):
     """Create train/test datasets, if running tests,
     randomly sample from all locations so models don't take forever to run"""
     locs = get_location_metadata(gbd_round_id=6, location_set_id=35)
 
-    keep_cols = DEM_COLS + ["cause_info", f"{int_cause}"] + [
+    # identify column corresponding to ICD attributes of interest
+    icd_col = f"{icd_feature}_cause_info"
+
+    keep_cols = DEM_COLS + [icd_col, int_cause] + [
         x for x in list(df) if "multiple_cause" in x]
 
     df = df.loc[(df.age_group_id != 283) & (df.age_group_id != 160)]
@@ -127,9 +130,9 @@ def create_train_test(df, test, int_cause, age_group_id, most_detailed):
         print_log_message(f"subsetting to just age group id {age_group_id}")
         df = df.loc[df["age_group_id"] == age_group_id]
         print_log_message(f"resulting df is {len(df)} rows")
-    df["cause_age_info"] = df[["cause_info", "age_group_id"]].astype(
+    df["cause_age_info"] = df[[icd_col, "age_group_id"]].astype(
         str).apply(lambda x: " ".join(x), axis=1)
-    df["dem_info"] = df[["cause_info", "location_id", "sex_id", "year_id", "age_group_id"]].astype(
+    df["dem_info"] = df[[icd_col, "location_id", "sex_id", "year_id", "age_group_id"]].astype(
         str).apply(lambda x: " ".join(x), axis=1)
 
     garbage_df = df.query(f"cause_id==743 & {int_cause}==1")

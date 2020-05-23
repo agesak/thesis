@@ -28,8 +28,7 @@ class MCauseLauncher(object):
 
     source_memory_dict = {
         'TWN_MOH': '2G', 'MEX_INEGI': '10G', 'BRA_SIM': '15G',
-        'USA_NVSS': '20G', 'COL_DANE': '2G', 'ZAF_STATSSA': '3G',
-        'ITA_ISTAT': '8G'}
+        'USA_NVSS': '20G', 'COL_DANE': '2G', 'ITA_ISTAT': '8G'}
 
     location_set_version_id = 420
     cause_set_version_id = conf.get_id('reporting_cause_set_version')
@@ -46,11 +45,10 @@ class MCauseLauncher(object):
                 'intermediate_causes', 'phase', 'inj_garbage']}
         )
         datasets = get_datasets(**datasets_kwargs)
-        # drop External Causes of Death by Injuries and Poisonings source
-        # these data are only used for drug overdoses (accidental poisoning)
-        # and that's handled by some other code outside of this pipeline
+        # GBD 2019: Drop Europe data because only for drug overdose
+        # 5/23/2020: Drop South Africa because Mohsen said not good for injuries
         datasets = datasets.loc[~(
-            datasets['source'].isin(["EUROPE_INJ_POISON"]))]
+            datasets['source'].isin(["EUROPE_INJ_POISON", "ZAF_STATSSA"]))]
         datasets = datasets.drop_duplicates(
             ['nid', 'extract_type_id']).set_index(
             ['nid', 'extract_type_id'])[[

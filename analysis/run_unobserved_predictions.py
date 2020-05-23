@@ -42,7 +42,8 @@ def aggregate_evaluation_metrics(summaries, testing_dir):
     summary_df = pd.concat(
         [mean, median, maximum, minimum], axis=1).reset_index(
     ).rename(columns={"index": "Evaluation metrics"})
-    summary_df.to_csv(f"{testing_dir}/model_metrics_summary.csv", index=False)
+        if not os.path.exists(f"{testing_dir}/model_metrics_summary.csv"):
+            summary_df.to_csv(f"{testing_dir}/model_metrics_summary.csv", index=False)
 
 
 def main(data_dir, predicted_test_dir, int_cause, short_name,
@@ -108,7 +109,7 @@ def main(data_dir, predicted_test_dir, int_cause, short_name,
     if short_name == "nn":
         param_kwargs = {k.replace("clf__", ""): v for k,
                         v in param_kwargs.items() if "clf__" in k}
-        cv = CountVectorizer(lowercase=False)
+        cv = CountVectorizer(lowercase=False, token_pattern = r"(?u)\b\w+\b")
         tf = cv.fit_transform(df[f"{x_col}"])
         print_log_message("converting to dense matrix")
         tf = tf.todense()

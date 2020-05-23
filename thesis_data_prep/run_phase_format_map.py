@@ -83,6 +83,88 @@ def drop_non_mcause(df, explore):
     return df
 
 
+def drop_duplicated_values(df, cols, fill):
+
+    duplicated = df[cols].apply(
+        pd.Series.duplicated, 1) & df[cols].astype(bool)
+    dropdf = df.drop(columns=cols)
+    df = pd.concat(
+        [dropdf, df[cols].mask(duplicated, fill)], axis=1)
+
+    return df
+
+
+def format_for_bow(df, code_system_id):
+    """Bag of words (bow) requires a single column with
+    all ICD coded information concatenated together
+    5/23/2020: Exploring the hierarchial nature of the ICD,
+    adding the option to include less detailed ICD codes information in the bow
+    Previous default, include: S00.01 (S0001 without decimal)
+    Now have options to include: S00, and S
+    Returns: df with with bow columns corresponding to
+    1. most detailed icd codes only
+    2. aggregated (3 digit) only code
+    ICD 10 (because ICD 9 doesn't have letters):
+    3. aggregated (3 digit) and letter
+    4. most detailed and letter """
+    multiple_cause_cols = [x for x in list(df) if "multiple_cause" in x]
+
+    # first, drop any duplicated ICD codes by row
+    df = drop_duplicated_values(df, multiple_cause_cols, fill="0000")
+
+    # capture hierarchical nature of ICD codes
+    feature_names = {1: "icd_letter",
+                     3: "icd_aggregate_code", 4: "icd_one_decimal"}
+    # ICD 9, care about 3 and 4 digit hierarchy
+    # ICD 10, care about letter, aggregate code,
+    # and detail past one decimal point
+    digits = {6: [3, 4], 1: [1, 3, 4]}
+    for col in multiple_cause_cols:
+        print(col)
+        # mostly for ICD 9
+        df[col] = df[col].astype(str)
+        for n in digits[code_system_id]:
+            df[f"{feature_names[n]}_{col}"] = np.NaN
+            df.loc[df[f"{col}"] != "0000",
+                   f"{feature_names[n]}_{col}"] = df[col].apply(
+                lambda x: x[0:n])
+
+    df[multiple_cause_cols] = df[multiple_cause_cols].replace(
+        "0000", np.NaN)
+
+    # column with just most detailed ICD code information
+    df["most_detailed_cause_info"] = df[multiple_cause_cols].fillna(
+        "").astype(str).apply(lambda x: " ".join(x), axis=1)
+
+    # just aggregate ICD code information
+    df = drop_duplicated_values(df, [x for x in list(
+        df) if "icd_aggregate" in x], fill=np.NaN)
+    df["aggregate_only_cause_info"] = df[[x for x in list(
+        df) if "icd_aggregate" in x]].fillna(
+        "").astype(str).apply(lambda x: " ".join(x), axis=1)
+
+    if code_system_id == 1:
+        # aggregate ICD code information and letter
+        df = drop_duplicated_values(df, [x for x in list(
+            df) if "icd_letter" in x], fill=np.NaN)
+        df["aggregate_and_letter_cause_info"] = df[[x for x in list(
+            df) if ("icd_aggregate" in x) | ("icd_letter" in x)]].fillna(
+            "").astype(str).apply(lambda x: " ".join(x), axis=1)
+
+        # most detailed and letter
+        df["most_detailed_and_letter_cause_info"] = df[[x for x in list(
+            df) if "icd_letter" in x] + multiple_cause_cols].fillna(
+            "").astype(str).apply(lambda x: " ".join(x), axis=1)
+    else:
+        # ICD 9 does not have a "letter"
+        df["aggregate_and_letter_cause_info"] = np.NaN
+        df["most_detailed_and_letter_cause_info"] = np.NaN
+
+    df.drop(columns=[x for x in list(df) if "icd" in x], inplace=True)
+
+    return df
+
+
 def run_pipeline(year, source, int_cause, code_system_id, code_map_version_id,
                  cause_set_version_id, nid, extract_type_id, data_type_id,
                  inj_garbage, diagnostic_acauses=None,
@@ -107,7 +189,7 @@ def run_pipeline(year, source, int_cause, code_system_id, code_map_version_id,
     cause_cols.remove("cause_id")
     # keep original "cause" information for
     # "cause" col is a string name in CoD cause map
-    # after mapping to cause ids - (ex code id  103591)
+    # after mapping to cause ids - (ex code id 103591)
     if source == "USA_NVSS":
         if code_system_id == 1:
             for col in cause_cols:
@@ -135,7 +217,7 @@ def run_pipeline(year, source, int_cause, code_system_id, code_map_version_id,
         # subset to rows where UCOD is injuries or any death is X59/y34
         df = df[[x for x in list(df) if not ((x.endswith(f"{int_cause}")) | (
             x.endswith("code_original")))] + [
-            f"{int_cause}", f"pII_{int_cause}", f"cause_{int_cause}"]]
+            int_cause, f"pII_{int_cause}", f"cause_{int_cause}"]]
 
         causes = get_most_detailed_inj_causes(
             int_cause, cause_set_version_id=cause_set_version_id,
@@ -143,15 +225,8 @@ def run_pipeline(year, source, int_cause, code_system_id, code_map_version_id,
         df = df.loc[(df.cause_id.isin(causes)) | (
             (df[f"{int_cause}"] == 1) & (df.cause_id == 743))]
 
-        # some edits to cause_cols for BoW
-        multiple_cause_cols = [x for x in list(df) if "cause" in x]
-        multiple_cause_cols.remove("cause_id")
-        df[multiple_cause_cols] = df[multiple_cause_cols].replace(
-            "0000", np.NaN).replace("other", np.NaN)
-        df["cause_info"] = df[[x for x in list(
-            df) if "multiple_cause" in x]].fillna(
-            "").astype(str).apply(lambda x: " ".join(x), axis=1)
-
+        df = format_for_bow(df, code_system_id)
+    df.drop(columns=[x for x in list(df) if "pII" in x], inplace=True)
     return df
 
 def apply_garbage_map(df, g_df, inj_packages):

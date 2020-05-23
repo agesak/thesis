@@ -63,9 +63,9 @@ def main(best_model_dir, dataset_dir, testing_model_dir, best_model_params, int_
     dataset.to_csv(
         f"{testing_model_dir}/dataset_{dataset_num}_predictions.csv", index=False)
     # the model object is huge for rf! 
-    if best_model_dir.split("/")[-1] != "rf":
-        joblib.dump(
-            grid_results, f"{testing_model_dir}/dataset_{dataset_num}_grid_results.pkl")
+    # if best_model_dir.split("/")[-1] != "rf":
+    #     joblib.dump(
+    #         grid_results, f"{testing_model_dir}/dataset_{dataset_num}_grid_results.pkl")
 
 
 if __name__ == '__main__':

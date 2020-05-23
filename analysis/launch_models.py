@@ -48,7 +48,8 @@ class ModelLauncher():
         self.age_feature = self.run_filters["age_feature"]
         self.by_age = self.run_filters["by_age"]
         self.dem_feature = self.run_filters["dem_feature"]
-        self.most_detailed = self.run_filters["most_detailed"]
+        self.icd_features = self.run_filters["icd_features"]
+        self.most_detailed_locs = self.run_filters["most_detailed_locs"]
         if self.run_filters["description"] is None:
             self.description = "{:%Y_%m_%d}".format(datetime.datetime.now())
             if self.test:
@@ -74,8 +75,8 @@ class ModelLauncher():
             write_dir = f"{self.model_dir}"
         makedirs_safely(write_dir)
         train_df, test_df, int_cause_df = create_train_test(
-            df, test=self.test, int_cause=self.int_cause,
-            age_group_id=age_group_id, most_detailed=self.most_detailed)
+            df, test=self.test, int_cause=self.int_cause, icd_feature=self.icd_features,
+            age_group_id=age_group_id, most_detailed=self.most_detailed_locs)
         print_log_message(f"writing train/test to df for {age_group_id}")
         train_df.to_csv(f"{write_dir}/train_df.csv", index=False)
         test_df.to_csv(f"{write_dir}/test_df.csv", index=False)
@@ -328,6 +329,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--int_cause", help="either x59 or y34", required=True,
         choices=["x59", "y34"])
+    parser.add_argument("--icd_features", required=True,
+                        choices=["most_detailed", "aggregate_only",
+                        "aggregate_and_letter", "most_detailed_and_letter"],
+                        help="which ICD attributes to include as features in bow")
     parser.add_argument("--age_feature", type=str2bool, nargs="?",
                         const=True, default=False, required=True,
                         help="include age as a feature in bow")
@@ -337,7 +342,7 @@ if __name__ == "__main__":
     parser.add_argument("--dem_feature", type=str2bool, nargs="?",
                         const=True, default=False, required=True,
                         help="include asyl as a feature in bow")
-    parser.add_argument("--most_detailed", type=str2bool, nargs="?",
+    parser.add_argument("--most_detailed_locs", type=str2bool, nargs="?",
                         const=True, default=False, required=True,
                         help="run model at most detailed location level")
     # not required for train_test/create_test_datasets
