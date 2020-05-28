@@ -21,6 +21,10 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import FunctionTransformer
 from keras.wrappers.scikit_learn import KerasClassifier
 
+import theano
+# get INFO (theano.gof.compilelock): Waiting for existing lock by unknown process (I am process '16768')
+# errors for launching in parallel without this 
+theano.gof.compilelock.set_lock_status(False)
 
 def create_custom_scorers(int_cause):
     """

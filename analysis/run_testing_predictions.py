@@ -11,6 +11,11 @@ from thesis_utils.misc import str2bool
 from sklearn.externals import joblib
 from sklearn.metrics import precision_score, recall_score, accuracy_score
 
+import theano
+# get INFO (theano.gof.compilelock): Waiting for existing lock by unknown process (I am process '16768')
+# errors for launching in parallel without this 
+theano.gof.compilelock.set_lock_status(False)
+
 
 def main(best_model_dir, dataset_dir, testing_model_dir, best_model_params, int_cause, dataset_num, age_feature, dem_feature):
 
@@ -60,12 +65,6 @@ def main(best_model_dir, dataset_dir, testing_model_dir, best_model_params, int_
     print_log_message("writing dfs")
     df.to_csv(
         f"{testing_model_dir}/dataset_{dataset_num}_summary_stats.csv", index=False)
-    dataset.to_csv(
-        f"{testing_model_dir}/dataset_{dataset_num}_predictions.csv", index=False)
-    # the model object is huge for rf! 
-    # if best_model_dir.split("/")[-1] != "rf":
-    #     joblib.dump(
-    #         grid_results, f"{testing_model_dir}/dataset_{dataset_num}_grid_results.pkl")
 
 
 if __name__ == '__main__':

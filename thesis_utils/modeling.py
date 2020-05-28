@@ -34,7 +34,7 @@ def read_in_data(int_cause, inj_garbage=False, code_system_id=None):
     print_log_message("reading in not limited use data")
     if inj_garbage:
         print_log_message(
-            "writing formatted df with only nonX59/Y34 garbage codes as UCOD")
+            "reading in formatted df with only nonX59/Y34 garbage codes as UCOD")
         subdirs = f"{int_cause}/thesis/inj_garbage"
     else:
         subdirs = f"{int_cause}/thesis"

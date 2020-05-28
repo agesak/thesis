@@ -156,9 +156,9 @@ def format_for_bow(df, code_system_id):
             df) if "icd_letter" in x] + multiple_cause_cols].fillna(
             "").astype(str).apply(lambda x: " ".join(x), axis=1)
     else:
-        # ICD 9 does not have a "letter"
-        df["aggregate_and_letter_cause_info"] = np.NaN
-        df["most_detailed_and_letter_cause_info"] = np.NaN
+        # ICD 9 does not have a "letter", just retain former aspect of desired column
+        df["aggregate_and_letter_cause_info"] = df["aggregate_only_cause_info"]
+        df["most_detailed_and_letter_cause_info"] = df["most_detailed_cause_info"]
 
     df.drop(columns=[x for x in list(df) if "icd" in x], inplace=True)
 
@@ -198,6 +198,9 @@ def run_pipeline(year, source, int_cause, code_system_id, code_map_version_id,
                     col] = df[f"{col}_code_original"]
 
     if inj_garbage:
+        # FYI: This was a last minute addition to make plots of %X59/Y34
+        # of injuries garbage for my manuscript
+        # it's not needed for any analysis
         print_log_message(
             "subsetting to only rows with UCOD as injuries garbage codes")
         package_list = pd.read_excel(
@@ -230,6 +233,7 @@ def run_pipeline(year, source, int_cause, code_system_id, code_map_version_id,
     return df
 
 def apply_garbage_map(df, g_df, inj_packages):
+    """only keep rows with injuries garbage as UCOD"""
 
     g_df["garbage_code"] = clean_icd_codes(
         g_df["garbage_code"], remove_decimal=True)

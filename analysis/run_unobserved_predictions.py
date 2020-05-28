@@ -1,6 +1,7 @@
 import pandas as pd
 import sys
 import six
+import os
 
 from thesis_utils.misc import str2bool
 from thesis_utils.modeling import create_neural_network
@@ -42,8 +43,8 @@ def aggregate_evaluation_metrics(summaries, testing_dir):
     summary_df = pd.concat(
         [mean, median, maximum, minimum], axis=1).reset_index(
     ).rename(columns={"index": "Evaluation metrics"})
-        if not os.path.exists(f"{testing_dir}/model_metrics_summary.csv"):
-            summary_df.to_csv(f"{testing_dir}/model_metrics_summary.csv", index=False)
+    if not os.path.exists(f"{testing_dir}/model_metrics_summary.csv"):
+        summary_df.to_csv(f"{testing_dir}/model_metrics_summary.csv", index=False)
 
 
 def main(data_dir, predicted_test_dir, int_cause, short_name,
@@ -84,6 +85,7 @@ def main(data_dir, predicted_test_dir, int_cause, short_name,
     param_df[f"{short_name}"] = param_df[f"{short_name}"].str.replace(
         "clf__estimator__", "")
     params = summaries.best_model_params.iloc[0]
+
     # format best params to feed to classifier
     if isinstance(params, six.string_types):
         best_params = params.split("_")

@@ -9,8 +9,9 @@ library(wesanderson, lib.loc="/homes/agesak/R/3.5/")
 
 # CHANGE THE COLORS AND PUT IN A LOOP
 
-DATE <- "2020_05_14"
-classifiers <- list("bernoulli_nb"="Bernoulli Naive Bayes")
+DATE <- "2020_05_23_most_detailed"
+classifiers <- list("bernoulli_nb"="Bernoulli Naive Bayes", "nn"="Neural Network")
+# classifiers <- list("nn"="Neural Network")
 
 prep_data <- function(df, int_cause, short_name){
   
@@ -33,19 +34,19 @@ prep_data <- function(df, int_cause, short_name){
             .SDcols=int_cause]
   # get prop by country
   df2[, prop :=  get(int_cause)/sum(get(int_cause)), by = "location_name"]
-  # zero motorcycle injuries in ZAF
-  if (int_cause == "y34"){
-    dt <- data.table(location_name="South Africa", prop=0, cause_name="Motorcyclist road injuries", y34=0)
-    # ONLY DO THIS WHEN DROPPING ADVERSE EFFECTS
-    # dt2 <- data.table(location_name="South Africa", prop=0, cause_name="Pedestrian road injuries", y34=0)
-    df2 <- rbind(df2, dt)
-    # df2 <- rbind(df2, dt, dt2)
-  }
+  # # zero motorcycle injuries in ZAF - dropped ZAF
+  # if (int_cause == "y34"){
+  #   dt <- data.table(location_name="South Africa", prop=0, cause_name="Motorcyclist road injuries", y34=0)
+  #   # ONLY DO THIS WHEN DROPPING ADVERSE EFFECTS
+  #   # dt2 <- data.table(location_name="South Africa", prop=0, cause_name="Pedestrian road injuries", y34=0)
+  #   df2 <- rbind(df2, dt)
+  #   # df2 <- rbind(df2, dt, dt2)
+  # }
   # order props by country
   df2 <- df2[order(cause_name, prop)]
   
   # so the bars will be ordered within groups
-  df2[, ID := rep(c(1:7), 5)]
+  df2[, ID := rep(c(1:6), 5)]
   
   # OR can get top 5 causes by country - kinda messy though
   # dt3 <- data.table(df2, key=c("location_name", "prop"))
@@ -59,8 +60,8 @@ plot_data <- function(int_cause, short_name){
   
   df <- prep_data(df, int_cause, short_name)
   # colors <- c('#D83151', '#26A146', '#FCAA51', '#1CC2BD', '#D354AC', '#9CC943', '#006966')
-  # darksalmon, "plum2",  "skyblue"
-  colors <- c("lightpink", "sandybrown", "thistle2", "palegreen2", "mediumaquamarine", "navajowhite", "yellow2")
+  # darksalmon, "plum2",  "skyblue", , "yellow2"
+  colors <- c("lightpink", "sandybrown", "thistle2","navajowhite", "palegreen2", "mediumaquamarine")
   
   
   plot <- ggplot(df, aes(x=reorder(cause_name, -prop), y=prop, fill=location_name, group=ID)) + 
@@ -72,7 +73,7 @@ plot_data <- function(int_cause, short_name){
           axis.title=element_text(size=20), legend.text=element_text(size=20),
           legend.title=element_text(size=20), plot.title = element_text(size=22)) + scale_x_discrete(labels = function(x) str_wrap(x, width = 25)) + 
     xlab("Cause Name") + labs(fill="Location Name") + ylab(paste(toupper(int_cause), "proportion")) + 
-    scale_fill_manual(values = colors) + scale_y_continuous(expand = c(0, 0))
+    scale_fill_manual(values = colors) + scale_y_continuous(expand = c(0, 0)) + ggtitle("Top 5 Causes")
 
   # wes_palette("Royal2", 7, type = c("continuous"))
   # scale_fill_brewer(palette = "Paired")
@@ -81,7 +82,7 @@ plot_data <- function(int_cause, short_name){
   
 }
 
-for (int_cause in c("x59", "y34")){
+for (int_cause in c("x59")){
   for (short_name in names(classifiers)){
     print(paste("working on", int_cause, short_name))
     plot_data(int_cause, short_name) 

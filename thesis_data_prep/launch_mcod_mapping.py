@@ -46,7 +46,7 @@ class MCauseLauncher(object):
         )
         datasets = get_datasets(**datasets_kwargs)
         # GBD 2019: Drop Europe data because only for drug overdose
-        # 5/23/2020: Drop South Africa because Mohsen said not good for injuries
+        # 5/23/2020: Drop South Africa because Mohsen said bad for injuries
         datasets = datasets.loc[~(
             datasets['source'].isin(["EUROPE_INJ_POISON", "ZAF_STATSSA"]))]
         datasets = datasets.drop_duplicates(
@@ -97,7 +97,7 @@ class MCauseLauncher(object):
         if data_type_id == 3:
             runtime = '02:00:00'
         else:
-            runtime = '01::00'
+            runtime = '06:00:00'
 
         submit_mcod(
             jobname, 'python', worker, cores=1, memory=memory, params=params,

@@ -79,38 +79,11 @@ def get_best_fit(model_dir, short_name):
     df = pd.concat(dfs, sort=True, ignore_index=True)
     df = df.sort_values(by="mean_test_concordance",
                                   ascending=False)[["model_params"]]
-    best_fit = df.iloc[0,0].replace("country_model_", "")
+    best_fit = df.iloc[0,0].replace("model_", "")
 
     return best_fit
 
 
-# def format_best_fit_params(best_fit, model_name):
-#     """Format a set of model parameters to run in the GridSearchCV pipeline
-#     Arguments:
-#         best_fit: df with cv_results_ method of GridSearchCV output
-#     """
-#     df = pd.read_csv("/homes/agesak/thesis/maps/parameters.csv")
-
-#     best_fit = best_fit[[x for x in list(best_fit) if (
-#         "param_" in x) & ~(x.endswith("estimator"))]].dropna(axis=1)
-#     best_fit.columns = best_fit.columns.str.lstrip('param_')
-#     # format the parameterts
-#     params = []
-#     for col in list(best_fit):
-#         params = params + best_fit[col].values.tolist()
-#     param_dict = dict(zip(list(best_fit), params))
-#     # merge on parameter df to ensure correct order
-#     df = df.merge(pd.DataFrame.from_dict(
-#         param_dict, orient="index").reset_index(
-#     ).rename(columns={"index": model_name}), on=model_name)
-#     # could be a problem in other places... basically float rows convert whole row to float.. which isnt what i want
-#     if model_name == "GradientBoostingClassifier":
-#         df[0] = np.where(df["GradientBoostingClassifier_dtype"] == "int", df[0].apply(int).astype(str), df[0])
-#     best_model_params = "_".join(
-#         df[0].dropna().astype(str).values.tolist())
-#     # best_model_params = format_argparse_params(model_name, params)
-
-#     return best_model_params
 
 def format_for_bow(df, age_feature, dem_feature):
     keep_cols = ["cause_id", "cause_info"]

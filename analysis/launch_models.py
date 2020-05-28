@@ -33,8 +33,8 @@ class ModelLauncher():
                     "svm": "120:00:00", "svm_bag": "24:00:00",
                     "nn": "120:00:00"}
     df_size_dict = {"x59": 1056994, "y34": 1708834}
-    num_datasets = 500
     # num_datasets = 10
+    num_datasets = 500
     # agg_ages = [39, 24, 224, 229, 47, 268, 294]
     agg_ages = [39]
 
@@ -51,12 +51,13 @@ class ModelLauncher():
         self.icd_features = self.run_filters["icd_features"]
         self.most_detailed_locs = self.run_filters["most_detailed_locs"]
         if self.run_filters["description"] is None:
-            self.description = "{:%Y_%m_%d}".format(datetime.datetime.now())
+            description = "{:%Y_%m_%d}".format(datetime.datetime.now())
             if self.test:
-                self.description += "_test"
+                description += "_test"
             assert self.phase == "train_test", "your model run must be associated with an already existing train/test df date"
         else:
-            self.description = self.run_filters["description"]
+            description = self.run_filters["description"]
+        self.description = description + "_" + self.icd_features
         self.dataset_dir = f"/ihme/cod/prep/mcod/process_data/{self.int_cause}/thesis/sample_dirichlet/{self.description}"
         self.model_dir = f"/ihme/cod/prep/mcod/process_data/{self.int_cause}/thesis/{self.description}"
         self.validate_run_filters()
@@ -106,7 +107,7 @@ class ModelLauncher():
                     params = [model_dir, dataset_dir, dataset_num,
                               ModelLauncher.df_size_dict[f"{self.int_cause}"],
                               self.age_feature, self.dem_feature]
-                    jobname = f"{self.int_cause}_dataset_{dataset_num}"
+                    jobname = f"{self.int_cause}_{self.icd_features}_dataset_{dataset_num}"
                     jid = submit_mcod(jobname, "python", worker,
                                       cores=2, memory="12G",
                                       params=params, verbose=True,
@@ -124,12 +125,12 @@ class ModelLauncher():
         else:
             predicted_test_dir = f"{self.dataset_dir}/{short_name}"
             model_dir = self.model_dir
-            jobname = f"{ModelLauncher.model_dict[short_name]}_{self.int_cause}_predictions"
+            jobname = f"{ModelLauncher.model_dict[short_name]}_{self.icd_features}_{self.int_cause}_predictions"
 
         params = [model_dir, predicted_test_dir, self.int_cause,
                   short_name, ModelLauncher.model_dict[short_name], self.age_feature, self.dem_feature]
         worker = f"/homes/agesak/thesis/analysis/run_unobserved_predictions.py"
-        memory_dict = {"rf": 12, "multi_nb": 12, "bernoulli_nb": 12,
+        memory_dict = {"rf": 70, "multi_nb": 12, "bernoulli_nb": 12,
                        "complement_nb": 12, "xgb": 40, "svm": 40,
                        "svm_bag": 20, "nn": 350}
         submit_mcod(jobname, "python", worker, cores=2, memory=f"{memory_dict[short_name]}G",
@@ -143,7 +144,7 @@ class ModelLauncher():
             dataset_dir = f"{self.dataset_dir}/{age_group_id}"
             testing_model_dir = f"{dataset_dir}/{short_name}"
         else:
-            best_model_dir = f"{self.model_dir}/{short_name}/country_model_{best_model_params}"
+            best_model_dir = f"{self.model_dir}/{short_name}/model_{best_model_params}"
             testing_model_dir = f"{self.dataset_dir}/{short_name}"
             dataset_dir = self.dataset_dir
 
@@ -151,14 +152,15 @@ class ModelLauncher():
         worker = f"/homes/agesak/thesis/analysis/run_testing_predictions.py"
         memory_dict = {"rf": 70, "multi_nb": 30, "bernoulli_nb": 30,
                        "complement_nb": 30, "xgb": 40, "svm": 40,
-                       "svm_bag": 20, "nn": 40}
+                       "svm_bag": 20, "nn": 45}
 
         # if ModelLauncher.num_datasets == 10:
-        #     numbers = (list(chunks(range(1, 11), 10)))
+            # numbers = (list(chunks(range(21, 31), 10)))
         if ModelLauncher.num_datasets == 500:
             numbers = (list(chunks(range(1, 501), 500)))
             dataset_dict = dict(zip(range(0, len(numbers)), numbers))
-            # numbers = [93]
+            # to just launch a few (in one batch)
+            # numbers = list(range(1, 16))
             # dataset_dict = {}
             # dataset_dict[0] = numbers
             holds_dict = {key: [] for key in dataset_dict.keys()}
@@ -176,7 +178,7 @@ class ModelLauncher():
                               testing_model_dir, best_model_params,
                               self.int_cause, dataset_num, self.age_feature,
                               self.dem_feature]
-                    jobname = f"{model_name}_{self.int_cause}_predictions_dataset_{dataset_num}_{best_model_params}"
+                    jobname = f"{model_name}_{self.int_cause}_predictions_dataset_{dataset_num}_{best_model_params}_{self.icd_features}"
                     memory = memory_dict[short_name]
                     if (self.int_cause == "y34") & (short_name == "nn"):
                         memory = 150
@@ -196,8 +198,8 @@ class ModelLauncher():
             jobname = f"{short_name}_{self.int_cause}_{model_param}_{age_group_id}"
             model_dir = f"{self.model_dir}/{age_group_id}"
         else:
-            write_dir = f"{self.model_dir}/{short_name}/country_model_{model_param}"
-            jobname = f"{short_name}_country_{self.int_cause}_{model_param}"
+            write_dir = f"{self.model_dir}/{short_name}/model_{model_param}"
+            jobname = f"{short_name}_{self.icd_features}_{self.int_cause}_{model_param}"
             model_dir = self.model_dir
 
         memory_dict = {"rf": 150, "multi_nb": 20, "bernoulli_nb": 20,
@@ -235,7 +237,7 @@ class ModelLauncher():
             os.listdir(dataset_dir)) if re.search(
             "dataset_[0-9]{0,3}.csv", x)])
         failed = ModelLauncher.num_datasets - num_datasets
-        assert num_datasets == ModelLauncher.num_datasets, f"{failed} jobs creating test datasets failed"
+        # assert num_datasets == ModelLauncher.num_datasets, f"{failed} jobs creating test datasets failed"
         return best_model_params
 
     def check_datasets_exist(model_path):
@@ -247,7 +249,7 @@ class ModelLauncher():
 
     def launch(self):
         if self.phase == "train_test":
-            df = read_in_data(self.int_cause, self.code_system_id)
+            df = read_in_data(int_cause = self.int_cause, code_system_id = self.code_system_id)
             if self.by_age:
                 for age_group_id in ModelLauncher.agg_ages:
                     print_log_message(f"working on age: {age_group_id}")
@@ -324,8 +326,6 @@ if __name__ == "__main__":
         choices=["train_test", "create_test_datasets",
                  "launch_training_model", "launch_testing_models",
                  "launch_int_cause_predictions"])
-    parser.add_argument("--test", type=str2bool, nargs="?",
-                        const=True, default=False)
     parser.add_argument(
         "--int_cause", help="either x59 or y34", required=True,
         choices=["x59", "y34"])
@@ -333,18 +333,20 @@ if __name__ == "__main__":
                         choices=["most_detailed", "aggregate_only",
                         "aggregate_and_letter", "most_detailed_and_letter"],
                         help="which ICD attributes to include as features in bow")
-    parser.add_argument("--age_feature", type=str2bool, nargs="?",
-                        const=True, default=False, required=True,
-                        help="include age as a feature in bow")
-    parser.add_argument("--by_age", type=str2bool, nargs="?",
-                        const=True, default=False, required=True,
-                        help="run models by age")
     parser.add_argument("--dem_feature", type=str2bool, nargs="?",
                         const=True, default=False, required=True,
                         help="include asyl as a feature in bow")
     parser.add_argument("--most_detailed_locs", type=str2bool, nargs="?",
-                        const=True, default=False, required=True,
+                        const=True, default=False,
                         help="run model at most detailed location level")
+    parser.add_argument("--age_feature", type=str2bool, nargs="?",
+                        const=True, default=False,
+                        help="include age as a feature in bow")
+    parser.add_argument("--by_age", type=str2bool, nargs="?",
+                        const=True, default=False,
+                        help="run models by age")
+    parser.add_argument("--test", type=str2bool, nargs="?",
+                        const=True, default=False)
     # not required for train_test/create_test_datasets
     parser.add_argument(
         "--model_type", help="short-hand name for ML classifier",
@@ -354,7 +356,7 @@ if __name__ == "__main__":
         choices=[1, 6], type=int)
     parser.add_argument(
         "--description",
-        help='required for all phases except train_test',
+        help='just the date of the model run required for all phases except train_test',
         type=str
     )
 

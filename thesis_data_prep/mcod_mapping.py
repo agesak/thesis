@@ -51,7 +51,8 @@ class MCoDMapper():
     def get_code_columns(df):
         """Get a list of raw cause columns with ICD codes as values."""
         col_names = list(df.columns)
-        code_cols = [x for x in col_names if "multiple_cause" in x and "pII" not in x] + ['cause']
+        code_cols = [
+            x for x in col_names if "multiple_cause" in x and "pII" not in x] + ['cause']
         return code_cols
 
     @staticmethod
@@ -85,7 +86,8 @@ class MCoDMapper():
         if code_system_id == 6:
             # according to Mohsen, codes between 800 to 900 need an E if underlying
             # assume 800, 900 codes are N codes if in the chain, don't add any prefix
-            df.loc[df['cause'].str.contains('^[89]'), 'cause'] = 'E' + df['cause']
+            df.loc[df['cause'].str.contains(
+                '^[89]'), 'cause'] = 'E' + df['cause']
         elif code_system_id == 1:
             # S + T codes are always intermediate causes of death
             # V + Y codes are always the underlying cause of death
@@ -119,13 +121,15 @@ class MCoDMapper():
         """
         check_map = cause_package_map[['map_id', 'map_type']].drop_duplicates()
         report_duplicates(check_map, 'map_id')
-        cause_package_map = cause_package_map.set_index('value')['map_id'].to_dict()
+        cause_package_map = cause_package_map.set_index('value')[
+            'map_id'].to_dict()
         return cause_package_map
 
     @staticmethod
     def prep_cause_map(cause_map):
         """Clean up cause map."""
-        cause_map['value'] = clean_icd_codes(cause_map['value'], remove_decimal=True)
+        cause_map['value'] = clean_icd_codes(
+            cause_map['value'], remove_decimal=True)
         # duplicates are a result of weird _gc, the duplicates dropped all
         # have the higher sort_order (999999)
         cause_map = cause_map.drop_duplicates(['code_system_id', 'value'])
@@ -177,15 +181,18 @@ class MCoDMapper():
                         df[mapped_code] = '0000'
                     else:
                         print("problem code here..." + df[code])
-                df.loc[df[mapped_code].isnull(), mapped_code] = df[temp_code].map(cause_map)
+                df.loc[df[mapped_code].isnull(), mapped_code] = df[temp_code].map(
+                    cause_map)
                 df = df.drop(temp_code, axis=1)
         return df
 
     def prep_int_cause_map(self):
         map_dir = self.conf.get_directory('process_inputs')
         code_system_name = {1: 'icd10', 6: 'icd9'}[self.code_system_id]
-        df = pd.read_excel(f"{map_dir}/mcause_map.xlsx", dtype={'icd_code': object})
-        df = df[['icd_code', 'package_description', 'code_system']].drop_duplicates()
+        df = pd.read_excel(f"{map_dir}/mcause_map.xlsx",
+                           dtype={'icd_code': object})
+        df = df[['icd_code', 'package_description',
+                 'code_system']].drop_duplicates()
 
         # cleanup strings and things
         df['icd_code'] = clean_icd_codes(df['icd_code'], remove_decimal=True)
@@ -194,7 +201,8 @@ class MCoDMapper():
             lambda x: x.str.lower())
 
         # only keep the rows we need for this intermediate cause
-        df = df.loc[df['package_description'].isin(self.full_cause_name)].drop_duplicates()
+        df = df.loc[df['package_description'].isin(
+            self.full_cause_name)].drop_duplicates()
 
         # intermediate causes should be mutually exclusive
         report_duplicates(df, ['icd_code', 'code_system'])
@@ -226,13 +234,13 @@ class MCoDMapper():
     def set_part2_flag(self, df):
         """Mark whether or not the cause of interest is from part 2 of the death certificate."""
         p2_cols = [x for x in df.columns if 'pII' in x]
-        int_cause_chains = [x for x in df.columns if (self.int_cause in x) and ('multiple' in x)]
+        int_cause_chains = [x for x in df.columns if (
+            self.int_cause in x) and ('multiple' in x)]
         p2_chain_dict = dict(list(zip(p2_cols, int_cause_chains)))
         df['pII_' + self.int_cause] = 0
         for p2_col, chain in sorted(p2_chain_dict.items()):
             df.loc[
-                (df[chain].isin(self.full_cause_name)) &
-                (df[p2_col] == 1), 'pII_' + self.int_cause
+                (df[chain].isin(self.full_cause_name)) & (df[p2_col] == 1), 'pII_' + self.int_cause
             ] = 1
         return df
 
@@ -249,7 +257,8 @@ class MCoDMapper():
         code_map = MCoDMapper.prep_cause_map(cause_map)
         df['cause_mapped'] = df['cause'].map(code_map)
 
-        print_log_message("Trimming ICD codes and remapping underlying cause/primary diagnosis")
+        print_log_message(
+            "Trimming ICD codes and remapping underlying cause/primary diagnosis")
         df = MCoDMapper.trim_and_remap(
             df, {'cause': 'cause_mapped'}, code_map, self.code_system_id)
         report_if_merge_fail(df, 'cause_mapped', 'cause')
@@ -270,9 +279,11 @@ class MCoDMapper():
         int_cause_cols = [x for x in df.columns if self.int_cause in x]
         int_cause_col_dict = MCoDMapper.prep_raw_mapped_cause_dictionary(
             raw_cause_cols, int_cause_cols)
-        df = MCoDMapper.trim_and_remap(df, int_cause_col_dict, int_cause_map, self.code_system_id)
+        df = MCoDMapper.trim_and_remap(
+            df, int_cause_col_dict, int_cause_map, self.code_system_id)
 
-        print_log_message("Identifying rows with intermediate cause of interest")
+        print_log_message(
+            "Identifying rows with intermediate cause of interest")
         df = self.capture_int_cause(df, int_cause_cols)
         if not self.drop_p2:
             df = self.set_part2_flag(df)

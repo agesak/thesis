@@ -6,9 +6,9 @@ library(ggplot2)
 
 # classifiers <- list("bernoulli_nb"="Bernoulli Naive Bayes")
 # classifiers <- list("rf"="Random Forest")
-# classifiers <- list("nn"="Neural Network")
-classifiers <- list("xgb"="Gradient Boosting")
-DATE <- "2020_05_14"
+classifiers <- list("nn"="Neural Network")
+# classifiers <- list("xgb"="Gradient Boosting","bernoulli_nb"="Bernoulli Naive Bayes", "rf"="Random Forest")
+DATE <- "2020_05_23_most_detailed"
 
 prep_data <- function(df, group_cols, int_cause_col, prop_type){
   df <- fread(df)
@@ -53,7 +53,7 @@ plot_data <- function(int_cause, short_name){
   
 }
 
-for (int_cause in c("x59", "y34")){
+for (int_cause in c("x59")){
   for (short_name in names(classifiers)){
       print(paste("working on", int_cause, short_name))
       plot_data(int_cause, short_name) 

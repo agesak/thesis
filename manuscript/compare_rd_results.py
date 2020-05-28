@@ -8,10 +8,10 @@ from cod_prep.claude.claude_io import makedirs_safely
 from cod_prep.utils.misc import print_log_message
 from thesis_utils.misc import get_country_names
 
-DATE = "2020_05_14"
+DATE = "2020_05_23_most_detailed"
 
 def format_classifier_results(int_cause, short_name):
-    model_dir = f"/ihme/cod/prep/mcod/process_data/{int_cause}/thesis/sample_dirichlet/{DATE}/"
+    model_dir = f"/ihme/cod/prep/mcod/process_data/{int_cause}/thesis/sample_dirichlet/{DATE}"
 
     df = pd.read_csv(
         f"{model_dir}/{short_name}/model_predictions.csv")
@@ -87,7 +87,7 @@ def choose_best_naive_bayes(int_cause):
 def choose_best_model(int_cause):
 
     bernoulli_df = pd.read_csv(f"/ihme/cod/prep/mcod/process_data/{int_cause}/thesis/sample_dirichlet/{DATE}/bernoulli_nb/model_metrics_summary.csv")
-    bernoulli_df.rename(columns= lambda x: x + '_bernouli_nb' if x not in ['Evaluation metrics'] else x, inplace=True)
+    bernoulli_df.rename(columns= lambda x: x + '_bernoulli_nb' if x not in ['Evaluation metrics'] else x, inplace=True)
 
     nn_df = pd.read_csv(f"/ihme/cod/prep/mcod/process_data/{int_cause}/thesis/sample_dirichlet/{DATE}/nn/model_metrics_summary.csv")
     nn_df.rename(columns= lambda x: x + '_nn'  if x not in ['Evaluation metrics'] else x, inplace=True)
@@ -101,7 +101,7 @@ def choose_best_model(int_cause):
     df = reduce(lambda left,right: pd.merge(left,right,on=['Evaluation metrics'],
                                                 how='outer'), [bernoulli_df, nn_df, rf_df, xgb_df])
 
-    makedirs_safely(f"/home/j/temp/agesak/thesis/model_results/test_set_summaries/{DATE}/")
+    makedirs_safely(f"/home/j/temp/agesak/thesis/model_results/{DATE}/")
     df.to_csv(f"/home/j/temp/agesak/thesis/model_results/{DATE}/{int_cause}_model_summary.csv", index=False)
     
 
@@ -124,14 +124,19 @@ def update_model_dict(int_cause):
     best_model = choose_best_naive_bayes(int_cause)
     best_model = best_model.replace("Mean_", "")
     model_dict.update({f"{int_cause}":best_model})
+
     return model_dict
 
+# for short_name in ["bernoulli_nb", "xgb", "rf", "nn"]:
+#     print_log_message(f"working on {short_name}")
+#     df = format_classifier_results(int_cause, short_name)
+#     rd = format_gbd_results(int_cause)
 # inconsistency here with short name for naive bayes
 # here short name for all is "nb", because only the 
 # best type of naive bayes will be used for final results
 for int_cause in ["x59", "y34"]:
     print_log_message(f"working on {int_cause}")
-    for short_name in ["nn"]:
+    for short_name in ["rf", "nb", "xgb"]:
         print_log_message(f"working on {short_name}")
         if short_name == "nb":
             model_dict = update_model_dict(int_cause)
