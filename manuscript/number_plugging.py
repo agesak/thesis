@@ -8,11 +8,9 @@ from thesis_utils.modeling import read_in_data
 from thesis_utils.misc import get_country_names
 
 
-
 # This included XX location-years of data from Mexico,
 # XX location-years of data from Brazil, XX location-years of data
-# from the United States, XX location-years of data from South Africa,
-# XX location-years of data from Columbia,
+# from the United States, XX location-years of data from Columbia,
 # and XX location-years of data from Italy.
 df = read_in_data(int_cause="x59", code_system_id=None, inj_garbage=False)
 df = get_country_names(df)
@@ -20,8 +18,14 @@ ly_df = df.groupby("location_name", as_index=False).agg(
     {"most_detailed_id": "nunique", "year_id": "nunique"})
 ly_df = ly_df.assign(
     location_years=ly_df["most_detailed_id"] * ly_df["year_id"])
+# ended up taking this out of table 1
 ly_df.to_csv(
     "/home/j/temp/agesak/thesis/tables/location_years.csv", index=False)
+# and replacing with this
+df.groupby("location_name", as_index=False)["year_id"].agg(
+    ["min", "max"]).reset_index().to_csv(
+    "/home/j/temp/agesak/thesis/tables/year_range.csv", index=False)
+
 
 # Data from XX, XX, and XX were ICD-10 coded,
 # data from XX and XX were ICD-9 coded and
@@ -31,7 +35,7 @@ df.groupby("location_name", as_index=False).agg(
     "/home/j/temp/agesak/thesis/tables/icd_systems.csv", index=False)
 
 # number of injuries related deaths - need total # deaths for each source
-df.groupby("location_name", as_index=False).agg({"deaths": "sum"})
+# df.groupby("location_name", as_index=False).agg({"deaths": "sum"})
 
 # Deaths where an injuries-related ICD code was the
 # underlying cause of death were mapped to one of XX
@@ -48,8 +52,8 @@ len(injuries.query("most_detailed==1"))
 # could pick any int cause here
 df = get_mcause_data(
     phase='format_map', sub_dirs="sepsis",
-    source=["TWN_MOH", "MEX_INEGI", "BRA_SIM", "USA_NVSS",
-            "COL_DANE", "ZAF_STATSSA", "ITA_ISTAT"],
+    source=["TWN_MOH", "MEX_INEGI", "BRA_SIM",
+            "USA_NVSS", "COL_DANE", "ITA_ISTAT"],
     verbose=True, **{"force_rerun": True, "block_rerun": False})
 # total deaths
 total_deaths = df.deaths.sum()

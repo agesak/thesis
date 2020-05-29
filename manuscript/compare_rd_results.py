@@ -77,8 +77,8 @@ def choose_best_naive_bayes(int_cause):
     df = reduce(lambda left,right: pd.merge(left,right,on=['Evaluation metrics'],
                                                 how='outer'), [multi_df, complement_df, bernoulli_df])
 
-    makedirs_safely(f"/home/j/temp/agesak/thesis/model_results/test_set_summaries/{DATE}/")
-    df.to_csv(f"/home/j/temp/agesak/thesis/model_results/test_set_summaries/{DATE}/{int_cause}_naivebayes_summary.csv", index=False)
+    makedirs_safely(f"/home/j/temp/agesak/thesis/model_results/{DATE}/")
+    df.to_csv(f"/home/j/temp/agesak/thesis/model_results/{DATE}/{int_cause}_naivebayes_summary.csv", index=False)
     best_model = df[[x for x in list(df) if "Mean" in x]].idxmax(axis=1).iloc[0]
 
     return best_model
@@ -139,7 +139,7 @@ for int_cause in ["x59", "y34"]:
     for short_name in ["rf", "nb", "xgb"]:
         print_log_message(f"working on {short_name}")
         if short_name == "nb":
-            model_dict = update_model_dict(int_cause)
+            update_model_dict(int_cause)
             # get the short name associated with the best naive bayes model
             short_name = model_dict[int_cause]
         df = format_classifier_results(int_cause, short_name)
