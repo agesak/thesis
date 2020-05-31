@@ -33,7 +33,6 @@ class ModelLauncher():
                     "svm": "120:00:00", "svm_bag": "24:00:00",
                     "nn": "120:00:00"}
     df_size_dict = {"x59": 1056994, "y34": 1708834}
-    # num_datasets = 10
     num_datasets = 500
     # agg_ages = [39, 24, 224, 229, 47, 268, 294]
     agg_ages = [39]
@@ -94,28 +93,25 @@ class ModelLauncher():
             model_dir = self.model_dir
         makedirs_safely(dataset_dir)
 
-        # if ModelLauncher.num_datasets == 10:
-        #     numbers = (list(chunks(range(1, 11), 10)))
-        if ModelLauncher.num_datasets == 500:
-            numbers = (list(chunks(range(1, 501), 500)))
-            dataset_dict = dict(zip(range(0, len(numbers)), numbers))
-            holds_dict = {key: [] for key in dataset_dict.keys()}
-            for batch in dataset_dict.keys():
-                datasets = dataset_dict[batch]
-                hold_ids = []
-                for dataset_num in datasets:
-                    params = [model_dir, dataset_dir, dataset_num,
-                              ModelLauncher.df_size_dict[f"{self.int_cause}"],
-                              self.age_feature, self.dem_feature]
-                    jobname = f"{self.int_cause}_{self.icd_features}_dataset_{dataset_num}"
-                    jid = submit_mcod(jobname, "python", worker,
-                                      cores=2, memory="12G",
-                                      params=params, verbose=True,
-                                      logging=True, jdrive=False,
-                                      queue="long.q", holds=holds_dict[batch])
-                    hold_ids.append(jid)
-                    if (dataset_num == datasets[-1]) & (batch != list(dataset_dict.keys())[-1]):
-                        holds_dict.update({batch + 1: hold_ids})
+        numbers = (list(chunks(range(1, ModelLauncher.num_datasets+1), ModelLauncher.numbers)))
+        dataset_dict = dict(zip(range(0, len(numbers)), numbers))
+        holds_dict = {key: [] for key in dataset_dict.keys()}
+        for batch in dataset_dict.keys():
+            datasets = dataset_dict[batch]
+            hold_ids = []
+            for dataset_num in datasets:
+                params = [model_dir, dataset_dir, dataset_num,
+                          ModelLauncher.df_size_dict[f"{self.int_cause}"],
+                          self.age_feature, self.dem_feature]
+                jobname = f"{self.int_cause}_{self.icd_features}_dataset_{dataset_num}"
+                jid = submit_mcod(jobname, "python", worker,
+                                  cores=2, memory="12G",
+                                  params=params, verbose=True,
+                                  logging=True, jdrive=False,
+                                  queue="long.q", holds=holds_dict[batch])
+                hold_ids.append(jid)
+                if (dataset_num == datasets[-1]) & (batch != list(dataset_dict.keys())[-1]):
+                    holds_dict.update({batch + 1: hold_ids})
 
     def launch_int_cause_predictions(self, short_name, age_group_id):
         if age_group_id:
@@ -150,46 +146,44 @@ class ModelLauncher():
 
         makedirs_safely(testing_model_dir)
         worker = f"/homes/agesak/thesis/analysis/run_testing_predictions.py"
-        memory_dict = {"rf": 70, "multi_nb": 30, "bernoulli_nb": 30,
+        memory_dict = {"rf": 140, "multi_nb": 30, "bernoulli_nb": 30,
                        "complement_nb": 30, "xgb": 40, "svm": 40,
-                       "svm_bag": 20, "nn": 45}
+                       "svm_bag": 20, "nn": 50}
 
-        # if ModelLauncher.num_datasets == 10:
-            # numbers = (list(chunks(range(21, 31), 10)))
-        if ModelLauncher.num_datasets == 500:
-            numbers = (list(chunks(range(1, 501), 500)))
-            dataset_dict = dict(zip(range(0, len(numbers)), numbers))
-            # to just launch a few (in one batch)
-            # numbers = list(range(1, 16))
-            # dataset_dict = {}
-            # dataset_dict[0] = numbers
-            holds_dict = {key: [] for key in dataset_dict.keys()}
-            for batch in dataset_dict.keys():
-                datasets = dataset_dict[batch]
-                hold_ids = []
-                for dataset_num in datasets:
-                    remove_if_output_exists(
-                        testing_model_dir,
-                        f"dataset_{dataset_num}_summary_stats.csv")
-                    remove_if_output_exists(
-                        testing_model_dir,
-                        f"dataset_{dataset_num}_predictions.csv")
-                    params = [best_model_dir, dataset_dir,
-                              testing_model_dir, best_model_params,
-                              self.int_cause, dataset_num, self.age_feature,
-                              self.dem_feature]
-                    jobname = f"{model_name}_{self.int_cause}_predictions_dataset_{dataset_num}_{best_model_params}_{self.icd_features}"
-                    memory = memory_dict[short_name]
-                    if (self.int_cause == "y34") & (short_name == "nn"):
-                        memory = 150
-                    jid = submit_mcod(jobname, "python", worker,
-                                      cores=4, memory=f"{memory}G",
-                                      params=params, verbose=True,
-                                      logging=True, jdrive=False,
-                                      queue="long.q", holds=holds_dict[batch])
-                    hold_ids.append(jid)
-                    if (dataset_num == datasets[-1]) & (batch != list(dataset_dict.keys())[-1]):
-                        holds_dict.update({batch + 1: hold_ids})
+        numbers = (list(chunks(range(1, ModelLauncher.num_datasets+1), int(ModelLauncher.num_datasets/2))))
+        dataset_dict = dict(zip(range(0, len(numbers)), numbers))
+        # to just launch a few (in one batch)
+        # numbers = list(range(340, 350))
+        # dataset_dict = {}
+        # dataset_dict[0] = numbers
+        holds_dict = {key: [] for key in dataset_dict.keys()}
+        for batch in dataset_dict.keys():
+            datasets = dataset_dict[batch]
+            hold_ids = []
+            for dataset_num in datasets:
+                remove_if_output_exists(
+                    testing_model_dir,
+                    f"dataset_{dataset_num}_summary_stats.csv")
+                remove_if_output_exists(
+                    testing_model_dir,
+                    f"dataset_{dataset_num}_predictions.csv")
+                params = [best_model_dir, dataset_dir,
+                          testing_model_dir, best_model_params,
+                          self.int_cause, dataset_num, self.age_feature,
+                          self.dem_feature]
+                jobname = f"{model_name}_{self.int_cause}_predictions_dataset_{dataset_num}_{best_model_params}_{self.icd_features}"
+                memory = memory_dict[short_name]
+                if (self.int_cause == "y34") & (short_name == "nn"):
+                    memory = 150
+                jid = submit_mcod(jobname, "python", worker,
+                                  cores=4, memory=f"{memory}G",
+                                  params=params, verbose=True,
+                                  logging=True, jdrive=False,
+                                  queue="long.q", holds=holds_dict[batch])
+                hold_ids.append(jid)
+                if (dataset_num == datasets[-1]) & (batch != list(dataset_dict.keys())[-1]):
+                    holds_dict.update({batch + 1: hold_ids})
+
 
     def launch_training_models(self, model_name, short_name,
                                model_param, age_group_id=None):
@@ -237,7 +231,7 @@ class ModelLauncher():
             os.listdir(dataset_dir)) if re.search(
             "dataset_[0-9]{0,3}.csv", x)])
         failed = ModelLauncher.num_datasets - num_datasets
-        # assert num_datasets == ModelLauncher.num_datasets, f"{failed} jobs creating test datasets failed"
+        assert num_datasets == ModelLauncher.num_datasets, f"{failed} jobs creating test datasets failed"
         return best_model_params
 
     def check_datasets_exist(model_path):

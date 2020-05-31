@@ -18,9 +18,9 @@ for (int_cause in int_causes){
     geom_bar(position=position_dodge(), stat="identity", fill = "mediumaquamarine") + 
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
           panel.background = element_blank(), axis.line = element_line(colour = "black")) + 
-    theme(axis.text.x = element_text(angle = 45, hjust = 1, size=12, color="black"),
-          axis.text.y = element_text(size=12, color="black"),
-          axis.title=element_text(size=14)) + xlab("Country Name") + 
+    theme(axis.text.x = element_text(angle = 45, hjust = 1, size=14, color="black"),
+          axis.text.y = element_text(size=14, color="black"),
+          axis.title=element_text(size=16)) + xlab("Country Name") + 
     ylab(paste("%", toupper(int_cause))) + 
     scale_y_continuous(labels = function(x) paste0(x, "%"), expand = c(0, 0)) + 
     scale_x_discrete(labels = function(x) str_wrap(x, width = 15))

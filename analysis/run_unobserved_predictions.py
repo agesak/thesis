@@ -43,8 +43,7 @@ def aggregate_evaluation_metrics(summaries, testing_dir):
     summary_df = pd.concat(
         [mean, median, maximum, minimum], axis=1).reset_index(
     ).rename(columns={"index": "Evaluation metrics"})
-    if not os.path.exists(f"{testing_dir}/model_metrics_summary.csv"):
-        summary_df.to_csv(f"{testing_dir}/model_metrics_summary.csv", index=False)
+    summary_df.to_csv(f"{testing_dir}/model_metrics_summary.csv", index=False)
 
 
 def main(data_dir, predicted_test_dir, int_cause, short_name,
