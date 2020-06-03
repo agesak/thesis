@@ -1,5 +1,5 @@
 # Machine Learning for Injuries Cause of Death Assignment: A New Method for the Global Burden of Disease Study
-### - A master's thesis completed for the University of Washington Master of Public Health Program (2020)
+### _A master's thesis completed for the University of Washington Master of Public Health Program (2020)_
 ## Kareha Agesa
 
 ## Overview
