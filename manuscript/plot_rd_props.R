@@ -53,7 +53,7 @@ plot_data <- function(int_cause, short_name){
   
 }
 
-for (int_cause in c("x59")){
+for (int_cause in c("y34")){
   for (short_name in names(classifiers)){
       print(paste("working on", int_cause, short_name))
       plot_data(int_cause, short_name) 

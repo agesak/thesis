@@ -9,7 +9,7 @@ from thesis_utils.misc import str2bool
 
 
 def main(model_param, model_name, write_dir, train_dir, int_cause, short_name, age_feature, dem_feature):
-
+    """Run gridsearch pipeline for a given classifier"""
     if age_feature:
         x_col = "cause_age_info"
     elif dem_feature:
@@ -43,13 +43,6 @@ if __name__ == '__main__':
     age_feature = str2bool(sys.argv[7])
     dem_feature = str2bool(sys.argv[8])
 
-    print(write_dir)
-    print(train_dir)
-    print(model_param)
-    print(model_name)
-    print(short_name)
-    print(int_cause)
-    print(age_feature)
-    print(type(age_feature))
+
     main(model_param, model_name, write_dir,
          train_dir, int_cause, short_name, age_feature, dem_feature)

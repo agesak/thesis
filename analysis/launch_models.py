@@ -153,7 +153,7 @@ class ModelLauncher():
         numbers = (list(chunks(range(1, ModelLauncher.num_datasets+1), int(ModelLauncher.num_datasets))))
         dataset_dict = dict(zip(range(0, len(numbers)), numbers))
         # to just launch a few (in one batch)
-        # numbers = [453]
+        # numbers = [29]
         # dataset_dict = {}
         # dataset_dict[0] = numbers
         holds_dict = {key: [] for key in dataset_dict.keys()}

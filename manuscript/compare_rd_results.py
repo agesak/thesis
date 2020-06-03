@@ -1,3 +1,6 @@
+"""Output csvs with redistribution proportions/numbers for each classifier vs GBD 2019, 
+Output csv with precision, accuracy, sensitivity, ccc, and cccsmfa across 500 test datasets"""
+
 import pandas as pd
 import numpy as np
 from functools import reduce
@@ -63,7 +66,7 @@ def format_gbd_results(int_cause):
     return rd
 
 def choose_best_naive_bayes(int_cause):
-    # this will need to have a by age option
+    """determine which naive bayes classifier performed the best"""
 
     multi_df = pd.read_csv(f"/ihme/cod/prep/mcod/process_data/{int_cause}/thesis/sample_dirichlet/{DATE}/multi_nb/model_metrics_summary.csv")
     multi_df.rename(columns= lambda x: x + '_multi_nb' if x not in ['Evaluation metrics'] else x, inplace=True)
@@ -85,6 +88,7 @@ def choose_best_naive_bayes(int_cause):
 
 
 def choose_best_model(int_cause):
+    """create table with evaluation metrics across all classifiers"""
 
     nb_df = pd.read_csv(f"/ihme/cod/prep/mcod/process_data/{int_cause}/thesis/sample_dirichlet/{DATE}/multi_nb/model_metrics_summary.csv")
     nb_df.rename(columns= lambda x: x + '_multi_nb' if x not in ['Evaluation metrics'] else x, inplace=True)
@@ -151,5 +155,5 @@ for int_cause in ["x59"]:
         df.to_csv(
             f"/home/j/temp/agesak/thesis/model_results/{DATE}/{DATE}_{int_cause}_{short_name}_predictions.csv", index=False)
 
-for int_cause in ["x59"]:
+for int_cause in ["x59", "y34"]:
     choose_best_model(int_cause)

@@ -1,4 +1,4 @@
-"""look at how concordance changes with max depth/number of trees for random forest"""
+"""compare mean ccc for number of trees/max depth rf grid search parameters"""
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
