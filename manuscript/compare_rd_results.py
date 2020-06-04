@@ -87,11 +87,11 @@ def choose_best_naive_bayes(int_cause):
     return best_model
 
 
-def choose_best_model(int_cause):
+def choose_best_model(int_cause, nb):
     """create table with evaluation metrics across all classifiers"""
 
-    nb_df = pd.read_csv(f"/ihme/cod/prep/mcod/process_data/{int_cause}/thesis/sample_dirichlet/{DATE}/multi_nb/model_metrics_summary.csv")
-    nb_df.rename(columns= lambda x: x + '_multi_nb' if x not in ['Evaluation metrics'] else x, inplace=True)
+    nb_df = pd.read_csv(f"/ihme/cod/prep/mcod/process_data/{int_cause}/thesis/sample_dirichlet/{DATE}/{nb}/model_metrics_summary.csv")
+    nb_df.rename(columns= lambda x: x + '_{nb}' if x not in ['Evaluation metrics'] else x, inplace=True)
 
     nn_df = pd.read_csv(f"/ihme/cod/prep/mcod/process_data/{int_cause}/thesis/sample_dirichlet/{DATE}/nn/model_metrics_summary.csv")
     nn_df.rename(columns= lambda x: x + '_nn'  if x not in ['Evaluation metrics'] else x, inplace=True)
@@ -132,9 +132,10 @@ for int_cause in ["x59", "y34"]:
 
 
 # inconsistency here with short name for naive bayes
-# here short name for all is "nb", because only the 
-# best type of naive bayes will be used for final results
-for int_cause in ["x59"]:
+# here short name is "nb" until the best naive bayes 
+# is identified (then short name will be either
+# multi_nb, bernoulli_nb, or complement_nb like normal)
+for int_cause in ["x59", "y34"]:
     print_log_message(f"working on {int_cause}")
     for short_name in ["rf", "nb", "xgb", "nn"]:
         if short_name == "nb":
@@ -152,8 +153,10 @@ for int_cause in ["x59"]:
         df = pretty_print(df)
         df = df.fillna(0)
         makedirs_safely(f"/home/j/temp/agesak/thesis/model_results/{DATE}")
+        # redistribution number and proportions by a/s/y/country
         df.to_csv(
             f"/home/j/temp/agesak/thesis/model_results/{DATE}/{DATE}_{int_cause}_{short_name}_predictions.csv", index=False)
 
+# evaluation metrics across 500 test datasets
 for int_cause in ["x59", "y34"]:
-    choose_best_model(int_cause)
+    choose_best_model(int_cause, nb = model_dict[int_cause])

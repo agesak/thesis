@@ -127,3 +127,101 @@ df = gbd.merge(garbage, on="location_name")
 df["total_injuries_deaths"] = df[[
     x for x in list(df) if "deaths" in x]].sum(axis=1)
 df.to_csv("/home/j/temp/agesak/thesis/tables/total_injuries_records.csv", index=False)
+
+
+"""RESULTS"""
+x59 = pd.read_csv("/home/j/temp/agesak/thesis/model_results/2020_05_23_most_detailed/2020_05_23_most_detailed_x59_nn_predictions.csv")
+y34 = pd.read_csv("/home/j/temp/agesak/thesis/model_results/2020_05_23_most_detailed/2020_05_23_most_detailed_y34_nn_predictions.csv")
+
+# While the results from GBD 2019 had a large proportion of X59 deaths
+# being classified as falls (xx%), the majority of deaths from the DNN 
+# were redistributed to motor vehicle road injuries (XX%). 
+df = x59.groupby("cause_name", as_index=False).agg(
+    {"x59_deaths_thesis": "sum", "x59_deaths_GBD2019": "sum"})
+df["percent_thesis"] = (df["x59_deaths_thesis"] / df["x59_deaths_thesis"].sum())*100
+df["percent_GBD2019"] = (df["x59_deaths_GBD2019"] / df["x59_deaths_GBD2019"].sum())*100
+df.sort_values("percent_GBD2019", ascending=False).iloc[0]
+df.sort_values("percent_thesis", ascending=False).iloc[0]
+
+
+# Likewise, the DNN predicted much higher proportions of X59 deaths 
+# to be redistributed to pedestrian road injuries (xx%)
+# and adverse effects of medical treatment (xx%),
+# than was used in GBD 2019 (xx%, and xx% respectively).
+df.loc[df.cause_name=="Pedestrian road injuries"].percent_thesis
+df.loc[df.cause_name=="Adverse effects of medical treatment"].percent_thesis
+df.loc[df.cause_name=="Pedestrian road injuries"].percent_GBD2019
+df.loc[df.cause_name=="Adverse effects of medical treatment"].percent_GBD2019
+
+# For the Y34 model, though physical violence by firearm received the largest 
+# proportion of deaths in GBD 2019 (xx%), adverse effects of medical treatment 
+# was predicted to receive the highest by the DNN (xx%) (Figure 4b). 
+df = y34.groupby("cause_name", as_index=False).agg(
+    {"y34_deaths_thesis": "sum", "y34_deaths_GBD2019": "sum"})
+df["percent_thesis"] = (df["y34_deaths_thesis"] / df["y34_deaths_thesis"].sum())*100
+df["percent_GBD2019"] = (df["y34_deaths_GBD2019"] / df["y34_deaths_GBD2019"].sum())*100
+df.sort_values("percent_GBD2019", ascending=False).iloc[0]
+df.sort_values("percent_thesis", ascending=False).iloc[0]
+
+# Likewise, the DNN predicted a much higher proportion of deaths to be 
+# redistributed to motor vehicle road injuries (xx%), and much lower 
+# proportions for self-harm by other specified means (xx%), 
+# physical violence by firearm (xx%), and falls (xx%)  than in GBD 2019 
+# (xx%, xx%, xx%, and xx% respectively)(Figure 4b).
+df.loc[df.cause_name=="Motor vehicle road injuries"].percent_thesis
+df.loc[df.cause_name=="Self-harm by other specified means"].percent_thesis
+df.loc[df.cause_name=="Physical violence by firearm"].percent_thesis
+df.loc[df.cause_name=="Falls"].percent_thesis
+df.loc[df.cause_name=="Motor vehicle road injuries"].percent_GBD2019
+df.loc[df.cause_name=="Self-harm by other specified means"].percent_GBD2019
+df.loc[df.cause_name=="Physical violence by firearm"].percent_GBD2019
+df.loc[df.cause_name=="Falls"].percent_GBD2019
+
+# Overall, the 5 causes with the highest proportion of redistributed
+# X59 deaths were motor vehicle road injuries (xx%), pedestrian road 
+# injuries (xx%), adverse effects of medical treatment (xx%), 
+# falls (xx%), and motorcyclist road injuries (xx%) 
+df = x59.groupby("cause_name", as_index=False).agg(
+    {"x59_deaths_thesis": "sum"})
+df["percent_thesis"] = (df["x59_deaths_thesis"] / df["x59_deaths_thesis"].sum())*100
+df.sort_values(
+    "percent_thesis", ascending=False)[["cause_name", "percent_thesis"]].head(5)
+
+# For Y34, the top 5 causes were adverse effects of medical treatment 
+# (xx%), motor vehicle road injuries (xx%), pedestrian road injuries 
+# (xx%), self-harm by other specified means (xx%), motorcyclist road 
+# injuries (xx%). 
+df = y34.groupby("cause_name", as_index=False).agg(
+    {"y34_deaths_thesis": "sum"})
+df["percent_thesis"] = (df["y34_deaths_thesis"] / df["y34_deaths_thesis"].sum())*100
+df.sort_values(
+    "percent_thesis", ascending=False)[["cause_name", "percent_thesis"]].head(5)
+
+# In looking by country for X59, the trend in motor vehicle road injuries
+# was largely driven by the United States (xx% of US X59 deaths)
+df = x59.groupby(["cause_name", "location_name"], as_index=False).agg(
+    {"x59_deaths_thesis": "sum"}).query(
+    "location_name=='United States of America'")
+df["percent_thesis"] = (df["x59_deaths_thesis"] / df["x59_deaths_thesis"].sum())*100
+df.loc[df.cause_name=="Motor vehicle road injuries"].percent_thesis
+# while falls was driven largely by Mexico (xx% of Mexico X59 deaths) (Figure 5a). 
+df = x59.groupby(["cause_name", "location_name"], as_index=False).agg(
+    {"x59_deaths_thesis": "sum"}).query(
+    "location_name=='Mexico'")
+df["percent_thesis"] = (df["x59_deaths_thesis"] / df["x59_deaths_thesis"].sum())*100
+df.loc[df.cause_name=="Falls"].percent_thesis
+
+# For Y34, Italy drove the trend in adverse effects of medical treatment 
+# (xx% of Italy Y34 deaths)
+df = y34.groupby(["cause_name", "location_name"], as_index=False).agg(
+    {"y34_deaths_thesis": "sum"}).query(
+    "location_name=='Italy'")
+df["percent_thesis"] = (df["y34_deaths_thesis"] / df["y34_deaths_thesis"].sum())*100
+df.loc[df.cause_name=="Adverse effects of medical treatment"].percent_thesis
+# while a large portion of the motorcyclist road injuries numbers were
+# driven by Taiwan (xx% of Taiwan Y34 deaths) 
+df = y34.groupby(["cause_name", "location_name"], as_index=False).agg(
+    {"y34_deaths_thesis": "sum"}).query(
+    "location_name=='Taiwan (Province of China)'")
+df["percent_thesis"] = (df["y34_deaths_thesis"] / df["y34_deaths_thesis"].sum())*100
+df.loc[df.cause_name=="Motorcyclist road injuries"].percent_thesis
