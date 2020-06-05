@@ -101,6 +101,6 @@ To activate virtual environment...
 ├── 
 ```
 -----
-\* This project is dependent on multiple cause of death data belonging to IHME, sources IHME central functions, and reads in files housed on IHME's cluster computing system.
+\* This project is dependent on multiple cause of death data belonging to IHME, sources IHME internal functions, and reads in files housed in IHME's internal file system.
 
 

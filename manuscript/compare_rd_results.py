@@ -91,7 +91,7 @@ def choose_best_model(int_cause, nb):
     """create table with evaluation metrics across all classifiers"""
 
     nb_df = pd.read_csv(f"/ihme/cod/prep/mcod/process_data/{int_cause}/thesis/sample_dirichlet/{DATE}/{nb}/model_metrics_summary.csv")
-    nb_df.rename(columns= lambda x: x + '_{nb}' if x not in ['Evaluation metrics'] else x, inplace=True)
+    nb_df.rename(columns= lambda x: x + f'_{nb}' if x not in ['Evaluation metrics'] else x, inplace=True)
 
     nn_df = pd.read_csv(f"/ihme/cod/prep/mcod/process_data/{int_cause}/thesis/sample_dirichlet/{DATE}/nn/model_metrics_summary.csv")
     nn_df.rename(columns= lambda x: x + '_nn'  if x not in ['Evaluation metrics'] else x, inplace=True)

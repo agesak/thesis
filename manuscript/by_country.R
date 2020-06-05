@@ -55,13 +55,14 @@ plot_data <- function(int_cause, short_name){
     geom_bar(position=position_dodge(), stat="identity", colour='black') +
     theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
           panel.background = element_blank(), axis.line = element_line(colour = "black"),
-          axis.text.x = element_text(angle = 45, hjust = 1, size=22, color="black"),
-          axis.text.y = element_text(size=22, color="black"),
-          axis.title=element_text(size=24), legend.text=element_text(size=24),
-          legend.title=element_text(size=24), plot.title = element_text(size=26)) + scale_x_discrete(labels = function(x) str_wrap(x, width = 25)) + 
+          axis.text.x = element_text(angle = 45, hjust = 1, size=29, color="black"),
+          axis.text.y = element_text(size=29, color="black"),
+          axis.title=element_text(size=28), legend.text=element_text(size=28),
+          legend.title=element_text(size=28), plot.title = element_text(size=30)) + scale_x_discrete(labels = function(x) str_wrap(x, width = 25)) + 
     xlab("Cause Name") + labs(fill="Location Name") + ylab(paste(toupper(int_cause), "proportion")) + 
     scale_fill_manual(values = colors) + scale_y_continuous(expand = c(0, 0)) + ggtitle("Top 5 Causes") +
-    guides(fill=guide_legend(keywidth=0.3, keyheight=0.5, default.unit="inch"))
+    guides(fill=guide_legend(keywidth=0.3, keyheight=0.5, default.unit="inch")) + 
+    theme(plot.margin = unit(c(1,1,2,1), "cm"))
 
   dir.create(paste0("/home/j/temp/agesak/thesis/figures/", DATE, "/"), showWarnings = FALSE)
   ggsave(paste0("/home/j/temp/agesak/thesis/figures/", DATE, "/", DATE, "_", int_cause, "_", short_name, "_by_country.pdf"), plot, dpi=300, height=12, width=22)
