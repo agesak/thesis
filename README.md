@@ -1,6 +1,6 @@
 # Machine Learning for Injuries Cause of Death Assignment: A New Method for the Global Burden of Disease Study
-### _A master's thesis completed for the University of Washington Master of Public Health Program (2020)_
-## Kareha Agesa
+## _A master's thesis completed for the University of Washington Master of Public Health Program (2020)_
+## _Kareha Agesa_
 
 ## Overview
 This repository contains code for my 2020 master's thesis exploring machine learning for X59 and Y34 garbage code redistribution. The code is structured as follows:
@@ -47,28 +47,28 @@ Each phase of this pipeline is defined as follows:
 \* The order of these phases is not defined in the code, but you should start by creating the train/test datasets, then if you like you could either launch the training models or create the test datasets. Launching the testing models must come after the 500 generated test datasets were created in phase: create_test_datasets, then you can launch_int_cause_predictions.
 
 ### _Machine Learning Implementations_
-1. Bag of words - [CountVectorizer in scikit-learn](https://scikit-learn.org/stable/modules/generated/sklearn.feature_extraction.text.CountVectorizer.html)
+1. [Bag of words](https://scikit-learn.org/stable/modules/generated/sklearn.feature_extraction.text.CountVectorizer.html)
 2. [Naive Bayes](https://scikit-learn.org/stable/modules/naive_bayes.html) 
 2. [Random Forest](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestClassifier.html)
 3. [Gradient Boosted Trees](https://xgboost.readthedocs.io/en/latest/python/index.html)
-4. Deep Neural Network (https://keras.io/)
+4. [Deep Neural Network](https://keras.io/)
 
-### Various Data/Model Attributes:
+### _Various Data/Model Attributes_
 The `ModelLauncher` class offers various flexibility regarding the input data and model attributes. For the input data, examples include the ability to model at either the most detailed (or country) location level and the ability to subset to only data for a given ICD system (either ICD 9 or ICD 10). The class also offers the ability to select various attributes of the data as features in the bag of words. For example, keeping standard the inclusion of ICD codes as features, models can additionally be run with just or age, sex, location, and year as features. The ability also exists to run separate models by age. As a supplementary analysis, the hierarchial nature of the ICD was explored as features in the bag of words. For example, instead of just including the most detailed ICD code given in the data, models were tried with just 3 digit ICD codes, 3 digit ICD codes and the ICD letter (for ICD 10), and most detailed code and the letter (for ICD 10). These are denoted as "most_detailed" "aggregate_only", "aggregate_and_letter", and "most_detailed_and_letter".
 
 
-## manuscript
+## **Folder: manuscript**
 ### Overview
+Various files related to generated figures and tables for my thesis manuscipt, along with a catalogue of how numbers were generated in the main text.
 ```
 .
-├── appendix_plot_rd_props.R
-├── by_country.R
-├── compare_rd_results.py
-├── country_cause_table.py
-├── get_best_model_params.py
-├── number_plugging.py
-├── percent_garbage.py
-├── plot_rd_props.R
+├── by_country.R                # creates bar graphs of fraction of x59/y34 redistributed to top 5 causes with highest proportion of redistributed deaths by country
+├── compare_rd_results.py       # creates csvs with redistribution numbers and fractions for 1. GBD 2019 and 2. for each classifier by age, sex, location (country), and year
+├── country_cause_table.py      # creates csv of by cause redistribution proportions and numbers for X59/Y34 and the best classifier (DNN)
+├── get_best_model_params.py    # creates csv of best model parameters for X59/Y34 for each classifier
+├── number_plugging.py          # record of how all numbers were calculated in the manuscript
+├── percent_garbage.py          # creates bar graph of the percent of all injuries garbage that is X59/Y34 by country
+├── plot_rd_props.R             # creates by cause bar plots of redistribution proportions
 ```
 
 ## maps
