@@ -23,9 +23,9 @@ To activate virtual environment...
 ```
 
 
-## analysis
+## **Folder: analysis**
 ### Overview
-The analysis pipeline (creation of the train/test datasets, model fitting, and model evaluation) are launched using the `ModelLauncher` class in `launch_models.py`. This class accepts command line arguments related to which classifier to run, which intermediate cause (either X59 or Y34) to use, which phase of the pipeline (defined above), and various characteristics of the data/model (ie. should the data be at the most-detailed location level (as opposed to country)?, which attributes of the data would you like to include as features in the bag of words? (just age? or age, sex, location, and year?), do you want to run separate models by age? would you like to experiment with the hierachial nature of the ICD in your models, by also including the ICD chapter (for ICD 10), and less detailed 3 digit codes, in addition to most detailed codes). This folder is structured as follows:
+The actions carried out in the analysis folder (creation of the train/test datasets, model fitting, and model evaluation) are launched using the `ModelLauncher` class in `launch_models.py`. This class accepts command line arguments related to which classifier to run, which intermediate cause (either X59 or Y34) to use, which phase of the pipeline (defined below), and various characteristics of the data/model. This folder is structured as follows:
 
 ```
 .
@@ -36,7 +36,7 @@ The analysis pipeline (creation of the train/test datasets, model fitting, and m
 ├── run_unobserved_predictions.py   # creates file of summary statistics across all evaluation metrics for the 500 generated test datasets, refits a given classifier on all unobserved data (train and test), predicts on unobserved data
 
 ```
-### Model Phases
+### _Model Phases_
 Each phase of this pipeline is defined as follows:
 - train_test: creation of the (75%) train and (25%) test datasets
 - create_test_datasets: creation of the 500 generated test datasets used for model evaluation
@@ -44,23 +44,17 @@ Each phase of this pipeline is defined as follows:
 - launch_testing_models: predict on each of the 500 generated test datasets for a given classifier
 - launch_int_cause_predictions: refit on all observed data and predict on the unobserved data
 
-### Bag of words:
+\* The order of these phases is not defined in the code, but you should start by creating the train/test datasets, then if you like you could either launch the training models or create the test datasets. Launching the testing models must come after the 500 generated test datasets were created in phase: create_test_datasets, then you can launch_int_cause_predictions.
 
-
-### Classifiers:
-1. 
-2. 
-3. 
-4. 
-5. 
-
-### Model Evaluation:
-
+### _Machine Learning Implementations_
+1. Bag of words - [CountVectorizer in scikit-learn](https://scikit-learn.org/stable/modules/generated/sklearn.feature_extraction.text.CountVectorizer.html)
+2. [Naive Bayes](https://scikit-learn.org/stable/modules/naive_bayes.html) 
+2. [Random Forest](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestClassifier.html)
+3. [Gradient Boosted Trees](https://xgboost.readthedocs.io/en/latest/python/index.html)
+4. Deep Neural Network (https://keras.io/)
 
 ### Various Data/Model Attributes:
-
-
-
+The `ModelLauncher` class offers various flexibility regarding the input data and model attributes. For the input data, examples include the ability to model at either the most detailed (or country) location level and the ability to subset to only data for a given ICD system (either ICD 9 or ICD 10). The class also offers the ability to select various attributes of the data as features in the bag of words. For example, keeping standard the inclusion of ICD codes as features, models can additionally be run with just or age, sex, location, and year as features. The ability also exists to run separate models by age. As a supplementary analysis, the hierarchial nature of the ICD was explored as features in the bag of words. For example, instead of just including the most detailed ICD code given in the data, models were tried with just 3 digit ICD codes, 3 digit ICD codes and the ICD letter (for ICD 10), and most detailed code and the letter (for ICD 10). These are denoted as "most_detailed" "aggregate_only", "aggregate_and_letter", and "most_detailed_and_letter".
 
 
 ## manuscript

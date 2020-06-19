@@ -1,7 +1,6 @@
 import pandas as pd
 import sys
 import six
-import os
 
 from thesis_utils.misc import str2bool
 from thesis_utils.modeling import create_neural_network
@@ -18,6 +17,7 @@ DEM_COLS = ["age_group_id", "sex_id", "location_id", "year_id"]
 
 
 def read_in_summary_stats(model_path):
+    """Read in and append all summary stats files across 500 test datasets"""
 
     summaries = []
     for dataset_num in range(1, 501, 1):
@@ -28,8 +28,10 @@ def read_in_summary_stats(model_path):
 
 
 def aggregate_evaluation_metrics(summaries, testing_dir):
-    """Generate mean, median, max, and min for evaluation metrics across 500 test datasets"""
+    """Generate mean, median, max, and min for
+    evaluation metrics across 500 test datasets"""
     metric_cols = [x for x in list(summaries) if x != "best_model_params"]
+
     # summarize evaluation metrics across the datasets
     mean = summaries[metric_cols].apply(
         lambda x: x.mean(axis=0)).rename("Mean")
@@ -39,6 +41,7 @@ def aggregate_evaluation_metrics(summaries, testing_dir):
         lambda x: x.max(axis=0)).rename("Max")
     minimum = summaries[metric_cols].apply(
         lambda x: x.min(axis=0)).rename("Min")
+
     # write to df
     summary_df = pd.concat(
         [mean, median, maximum, minimum], axis=1).reset_index(
@@ -48,11 +51,12 @@ def aggregate_evaluation_metrics(summaries, testing_dir):
 
 def main(data_dir, predicted_test_dir, int_cause, short_name,
          model_name, age_feature, dem_feature):
-    # read in predictions from 500 test datasets
-    # aggregate the evaluation metrics from each of the 500
-    # refit model on all the observed data
-    # predict on the x59/y34 data
+    """Summarize evaluation metrics across 500 test datasets
+       Refit the classifier on all observed data
+       Predict on the unobserved data
+    """
 
+    # determine the model's feature vector
     if age_feature:
         x_col = "cause_age_info"
     elif dem_feature:
@@ -65,20 +69,21 @@ def main(data_dir, predicted_test_dir, int_cause, short_name,
     # summarize evaluation metrics across the datasets
     aggregate_evaluation_metrics(summaries, predicted_test_dir)
 
-    # read in test and train df
+    # read in test df
     test_df = pd.read_csv(
         f"{data_dir}/test_df.csv")[DEM_COLS + ["cause_id",
                                                f"{x_col}",
                                                f"{int_cause}"]]
+    # read in train df
     train_df = pd.read_csv(
-        f"{data_dir}/test_df.csv")[DEM_COLS + ["cause_id",
-                                               f"{x_col}",
-                                               f"{int_cause}"]]
-    print("read in train and test")
+        f"{data_dir}/train_df.csv")[DEM_COLS + ["cause_id",
+                                                f"{x_col}",
+                                                f"{int_cause}"]]
+    print_log_message("read in train and test")
     # concat train/test to refit a model on all the observed data
     df = pd.concat([train_df, test_df], sort=True, ignore_index=True)
 
-    print("reading in params df")
+    print_log_message("reading in params df")
     param_df = pd.read_csv("/homes/agesak/thesis/maps/parameters.csv")
     param_df = param_df[[x for x in list(param_df) if short_name in x]]
     param_df[f"{short_name}"] = param_df[f"{short_name}"].str.replace(
@@ -107,10 +112,12 @@ def main(data_dir, predicted_test_dir, int_cause, short_name,
             f"{short_name}"] == key, f"{short_name}_dtype"].iloc[0]
         param_kwargs[key] = measure_dict[dtype](param_kwargs[key])
 
+    # run Neural network separately because classifier
+    # takes secondary arguments related to build
     if short_name == "nn":
         param_kwargs = {k.replace("clf__", ""): v for k,
                         v in param_kwargs.items() if "clf__" in k}
-        cv = CountVectorizer(lowercase=False, token_pattern = r"(?u)\b\w+\b")
+        cv = CountVectorizer(lowercase=False, token_pattern=r"(?u)\b\w+\b")
         tf = cv.fit_transform(df[f"{x_col}"])
         print_log_message("converting to dense matrix")
         tf = tf.todense()
@@ -124,14 +131,14 @@ def main(data_dir, predicted_test_dir, int_cause, short_name,
         print_log_message("fitting KerasClassifier")
         model.fit(tf, df["cause_id"].values, **param_kwargs)
     else:
-        # do the refit
+        # refit all other classifiers
         cv = CountVectorizer(lowercase=False)
         tf = cv.fit_transform(df[f"{x_col}"])
         print_log_message(f"fitting {model_name}")
         model = eval(model_name)(**param_kwargs).fit(tf, df["cause_id"])
 
     # now predict on the unobserved data
-    print("reading in unobserved_df")
+    print_log_message("reading in unobserved_df")
 
     unobserved_df = pd.read_csv(
         f"{data_dir}/int_cause_df.csv")[DEM_COLS + ["cause_id",
@@ -139,15 +146,15 @@ def main(data_dir, predicted_test_dir, int_cause, short_name,
                                                     f"{int_cause}"]]
     new_counts = cv.transform(unobserved_df[f"{x_col}"])
     if short_name == "nn":
-        print_log_message("converting unobserved data to sparse matrix")
+        print_log_message("converting unobserved data to dense matrix")
         new_counts = new_counts.todense()
     unobserved_df["predictions"] = model.predict(new_counts)
 
-    print("writing to df")
+    print_log_message("writing to df")
     unobserved_df.to_csv(f"{predicted_test_dir}/model_predictions.csv")
     joblib.dump(
         model, f"{predicted_test_dir}/model_fit.pkl")
-    print("wrote model fit")
+    print_log_message("wrote model fit")
 
 
 if __name__ == '__main__':
@@ -159,9 +166,6 @@ if __name__ == '__main__':
     model_name = str(sys.argv[5])
     age_feature = str2bool(sys.argv[6])
     dem_feature = str2bool(sys.argv[7])
-
-    print(data_dir)
-    print(predicted_test_dir)
 
     main(data_dir, predicted_test_dir, int_cause,
          short_name, model_name, age_feature, dem_feature)
