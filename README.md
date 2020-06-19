@@ -40,7 +40,7 @@ The actions carried out in the analysis folder (creation of the train/test datas
 Each phase of this pipeline is defined as follows:
 - train_test: creation of the (75%) train and (25%) test datasets
 - create_test_datasets: creation of the 500 generated test datasets used for model evaluation
-- launch_training_model: fits a given classifier on the training data (and performs 5 fold cross validation using)
+- launch_training_model: fits a given classifier on the training data (and performs 5 fold cross validation using a [gridsearch](https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html))
 - launch_testing_models: predict on each of the 500 generated test datasets for a given classifier
 - launch_int_cause_predictions: refit on all observed data and predict on the unobserved data
 
