@@ -84,6 +84,7 @@ def drop_non_mcause(df, explore):
 
 
 def drop_duplicated_values(df, cols, fill):
+    """Drop any duplicated ICD codes (by row)"""
 
     duplicated = df[cols].apply(
         pd.Series.duplicated, 1) & df[cols].astype(bool)
@@ -106,11 +107,18 @@ def format_for_bow(df, code_system_id):
     2. aggregated (3 digit) only code
     ICD 10 (because ICD 9 doesn't have letters):
     3. aggregated (3 digit) and letter
-    4. most detailed and letter """
-    multiple_cause_cols = [x for x in list(df) if "multiple_cause" in x]
+    4. most detailed and letter
+
+    5. Also returns df with custom n-code groups"""
+    multiple_cause_cols = [x for x in list(df) if (
+        "multiple_cause" in x) & ~(x.endswith(f"{int_cause}"))]
 
     # first, drop any duplicated ICD codes by row
     df = drop_duplicated_values(df, multiple_cause_cols, fill="0000")
+
+    # then, drop any non-injuries related ICD codes in the chain
+    for col in multiple_cause_cols:
+        df.loc[~df[col].str.contains("^[89]|^[ST]"), col] = "0000"
 
     # capture hierarchical nature of ICD codes
     feature_names = {1: "icd_letter",
@@ -120,7 +128,6 @@ def format_for_bow(df, code_system_id):
     # and detail past one decimal point
     digits = {6: [3, 4], 1: [1, 3, 4]}
     for col in multiple_cause_cols:
-        print(col)
         # mostly for ICD 9
         df[col] = df[col].astype(str)
         for n in digits[code_system_id]:
@@ -131,6 +138,19 @@ def format_for_bow(df, code_system_id):
 
     df[multiple_cause_cols] = df[multiple_cause_cols].replace(
         "0000", np.NaN)
+
+    # column with n-code groups instead of ICD codes
+    grouped_cols = [x for x in list(df) if (
+        "multiple_cause" in x) & (x.endswith(f"{int_cause}"))]
+    df[grouped_cols] = df[grouped_cols].replace(
+        ["other", "unspecified external factor x59", "0000",
+         "external causes udi,type unspecified-y34"], "none")
+    for col in grouped_cols:
+        assert len(df.loc[~(df[col].str.contains("nn", na=False)) & (
+            df[col] != "none")]) == 0, f"there are non n-code groups in column: {col}"
+    df[grouped_cols] = df[grouped_cols].replace("none", np.NaN)
+    df["grouped_ncode_cause_info"] = df[grouped_cols].fillna(
+        "").astype(str).apply(lambda x: " ".join(x), axis=1)
 
     # column with just most detailed ICD code information
     df["most_detailed_cause_info"] = df[multiple_cause_cols].fillna(
@@ -217,11 +237,6 @@ def run_pipeline(year, source, int_cause, code_system_id, code_map_version_id,
         # subset df to only rows with injuries garbage as UCOD
         df = apply_garbage_map(df, garbage_df, inj_packages)
     else:
-        # subset to rows where UCOD is injuries or any death is X59/y34
-        df = df[[x for x in list(df) if not ((x.endswith(f"{int_cause}")) | (
-            x.endswith("code_original")))] + [
-            int_cause, f"pII_{int_cause}", f"cause_{int_cause}"]]
-
         causes = get_most_detailed_inj_causes(
             int_cause, cause_set_version_id=cause_set_version_id,
             **{'block_rerun': True, 'force_rerun': False})
@@ -229,8 +244,12 @@ def run_pipeline(year, source, int_cause, code_system_id, code_map_version_id,
             (df[f"{int_cause}"] == 1) & (df.cause_id == 743))]
 
         df = format_for_bow(df, code_system_id)
-    df.drop(columns=[x for x in list(df) if "pII" in x], inplace=True)
+        # subset to rows where UCOD is injuries or any death is X59/y34
+        df = df[[x for x in list(df) if not ((x.endswith(f"{int_cause}")) | (
+            x.endswith("code_original")) | (x.startswith("pII")))] + [
+            int_cause, f"pII_{int_cause}", f"cause_{int_cause}"]]
     return df
+
 
 def apply_garbage_map(df, g_df, inj_packages):
     """only keep rows with injuries garbage as UCOD"""

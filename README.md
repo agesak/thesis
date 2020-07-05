@@ -54,15 +54,15 @@ Each phase of this pipeline is defined as follows:
 4. [Deep Neural Network](https://keras.io/)
 
 ### _Various Data/Model Attributes_
-The `ModelLauncher` class offers various flexibility regarding the input data and model attributes. For the input data, examples include the ability to model at either the most detailed (or country) location level and the ability to subset to only data for a given ICD system (either ICD 9 or ICD 10). The class also offers the ability to select various attributes of the data as features in the bag of words. For example, keeping standard the inclusion of ICD codes as features, models can additionally be run with just or age, sex, location, and year as features. The ability also exists to run separate models by age. As a supplementary analysis, the hierarchial nature of the ICD was explored as features in the bag of words. For example, instead of just including the most detailed ICD code given in the data, models were tried with just 3 digit ICD codes, 3 digit ICD codes and the ICD letter (for ICD 10), and most detailed code and the letter (for ICD 10). These are denoted as "most_detailed" "aggregate_only", "aggregate_and_letter", and "most_detailed_and_letter".
+The `ModelLauncher` class offers various flexibility regarding the input data and model attributes. For the input data, you have the ability to model at either the most detailed or the country location level and the ability to subset to only data for a given ICD system (either ICD 9 or ICD 10). The class also offers flexibility in selecting various attributes of the data as features in the bag of words. For example (keeping standard the inclusion of ICD codes as features), models can additionally be run with just age as a feature or age, sex, location, and year as features. The ability also exists to run separate models by age. As a supplementary analysis, the hierarchial nature of the ICD was explored as features in the bag of words. For example, instead of just including the most detailed ICD code given in the data, models were tried with just 3 digit ICD codes, 3 digit ICD codes and the ICD letter (for ICD 10), and most detailed code and the letter (for ICD 10). These are denoted as "most_detailed", "aggregate_only", "aggregate_and_letter", and "most_detailed_and_letter".
 
 
 ## **Folder: manuscript**
 ### Overview
-Various files related to generated figures and tables for my thesis manuscipt, along with a catalogue of how numbers were generated in the main text.
+Various files related to generating figures and tables for my thesis manuscipt, along with a catalogue of how numbers were generated in the main text.
 ```
 .
-├── by_country.R                # creates bar graphs of fraction of x59/y34 redistributed to top 5 causes with highest proportion of redistributed deaths by country
+├── by_country.R                # creates bar graphs of the fraction of x59/y34 deaths redistributed to top 5 causes with highest proportion of redistributed deaths by country
 ├── compare_rd_results.py       # creates csvs with redistribution numbers and fractions for 1. GBD 2019 and 2. for each classifier by age, sex, location (country), and year
 ├── country_cause_table.py      # creates csv of by cause redistribution proportions and numbers for X59/Y34 and the best classifier (DNN)
 ├── get_best_model_params.py    # creates csv of best model parameters for X59/Y34 for each classifier
@@ -92,6 +92,8 @@ Just like it sounds
 
 ## thesis_data_prep
 ### Overview
+
+- expected column outputs
 
 ```
 .

@@ -324,7 +324,7 @@ if __name__ == "__main__":
         "--int_cause", help="either x59 or y34", required=True,
         choices=["x59", "y34"])
     parser.add_argument("--icd_features", required=True,
-                        choices=["most_detailed", "aggregate_only",
+                        choices=["grouped_ncode", "most_detailed", "aggregate_only",
                         "aggregate_and_letter", "most_detailed_and_letter"],
                         help="which ICD attributes to include as features in bow")
     parser.add_argument("--dem_feature", type=str2bool, nargs="?",

@@ -108,7 +108,8 @@ def drop_age_restricted_cols(df):
     return df
 
 
-def create_train_test(df, test, int_cause, icd_feature, age_group_id, most_detailed):
+def create_train_test(df, test, int_cause, icd_feature,
+                      age_group_id, most_detailed):
     """Create train/test datasets, if running tests,
     randomly sample from all locations so models don't take forever to run"""
     locs = get_location_metadata(gbd_round_id=6, location_set_id=35)

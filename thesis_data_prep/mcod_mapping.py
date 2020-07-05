@@ -201,8 +201,9 @@ class MCoDMapper():
             lambda x: x.str.lower())
 
         # only keep the rows we need for this intermediate cause
-        df = df.loc[df['package_description'].isin(
-            self.full_cause_name)].drop_duplicates()
+        # keep n-code rows for injuries
+        df = df.loc[(df['package_description'].isin(
+            self.full_cause_name)) | (df['package_description'].str.contains('nn'))].drop_duplicates()
 
         # intermediate causes should be mutually exclusive
         report_duplicates(df, ['icd_code', 'code_system'])
@@ -240,7 +241,8 @@ class MCoDMapper():
         df['pII_' + self.int_cause] = 0
         for p2_col, chain in sorted(p2_chain_dict.items()):
             df.loc[
-                (df[chain].isin(self.full_cause_name)) & (df[p2_col] == 1), 'pII_' + self.int_cause
+                (df[chain].isin(self.full_cause_name)) & (
+                    df[p2_col] == 1), 'pII_' + self.int_cause
             ] = 1
         return df
 
@@ -266,7 +268,8 @@ class MCoDMapper():
         # merge on the cause_id for the underlying cause
         df = df.rename(columns={'cause_mapped': 'code_id'})
         df['code_id'] = df['code_id'].astype(int)
-        df = add_code_metadata(df, 'cause_id', code_map_version_id=self.code_map_version_id,
+        df = add_code_metadata(df, 'cause_id',
+                               code_map_version_id=self.code_map_version_id,
                                **self.cache_options)
         report_if_merge_fail(df, 'cause_id', 'code_id')
 
