@@ -17,13 +17,12 @@ This repository contains code for my 2020 master's thesis exploring machine lear
 ```
 
 ## Getting Starting
-To activate virtual environment...
+To obtain the pytho environment used in this analysis run\*:
 ```bash
-
+conda env create -f environment.yml
 ```
 
-
-## **Folder: analysis**
+## _analysis_
 ### Overview
 The actions carried out in the analysis folder (creation of the train/test datasets, model fitting, and model evaluation) are launched using the `ModelLauncher` class in `launch_models.py`. This class accepts command line arguments related to which classifier to run, which intermediate cause (either X59 or Y34) to use, which phase of the pipeline (defined below), and various characteristics of the data/model. This folder is structured as follows:
 
@@ -54,10 +53,10 @@ Each phase of this pipeline is defined as follows:
 4. [Deep Neural Network](https://keras.io/)
 
 ### _Various Data/Model Attributes_
-The `ModelLauncher` class offers various flexibility regarding the input data and model attributes. For the input data, you have the ability to model at either the most detailed or the country location level and the ability to subset to only data for a given ICD system (either ICD 9 or ICD 10). The class also offers flexibility in selecting various attributes of the data as features in the bag of words. For example (keeping standard the inclusion of ICD codes as features), models can additionally be run with just age as a feature or age, sex, location, and year as features. The ability also exists to run separate models by age. As a supplementary analysis, the hierarchial nature of the ICD was explored as features in the bag of words. For example, instead of just including the most detailed ICD code given in the data, models were tried with just 3 digit ICD codes, 3 digit ICD codes and the ICD letter (for ICD 10), and most detailed code and the letter (for ICD 10). These are denoted as "most_detailed", "aggregate_only", "aggregate_and_letter", and "most_detailed_and_letter".
+The `ModelLauncher` class offers various flexibility regarding the input data and model attributes. For the input data, you have the ability to model at either the most detailed or the country location level and the ability to subset to only data for a given ICD system (either ICD 9 or ICD 10). The class also offers flexibility in selecting various attributes of the data as features in the bag of words. For example (keeping standard the inclusion of ICD codes as features), models can additionally be run with just age as a feature or age, sex, location, and year as features. The ability also exists to run separate models by age. As a supplementary analysis, the hierarchial nature of the ICD was explored as features in the bag of words. For example, instead of just including the most detailed ICD code given in the data, models were tried with just 3 digit ICD codes, 3 digit ICD codes and the ICD letter (for ICD 10), and most detailed code and the letter (for ICD 10). These are denoted as "most_detailed", "aggregate_only", "aggregate_and_letter", and "most_detailed_and_letter". Additionally in GBD 2019, Mohsen collapsed all N-codes into custom groups (as a way to ease modeling), so there exists an option to use these groups as features in the bag of words (instead of the ICD codes themselves). Denoted "grouped_ncode" in the `ModelLauncher`.
 
 
-## **Folder: manuscript**
+## _manuscript_
 ### Overview
 Various files related to generating figures and tables for my thesis manuscipt, along with a catalogue of how numbers were generated in the main text.
 ```
@@ -71,50 +70,40 @@ Various files related to generating figures and tables for my thesis manuscipt, 
 ├── plot_rd_props.R             # creates by cause bar plots of redistribution proportions
 ```
 
-## maps
+## _maps_
 ### Overview
-
+Some helpful csvs/excel files. 
 ```
 .
-├── injuries_overrrides.csv
-├── package_list.xlsx
-├── parameters.csv
+├── injuries_overrrides.csv     # GBD injuries age/sex restrictions applied to the input data prior to modeling
+├── package_list.xlsx           # denotes which garbage packages are injuries-related (used to make plots of %X59/Y34 of injuries garbage)
+├── parameters.csv              # the holy grail - a cached file of the model parameters to feed to the grid search
 ```
-## misc
-Just like it sounds
+## _misc_
+Just like it sounds.
 ```
 .
-├── plot_rfs.py
-├── plot_xgb.py
-├── pull_garbage_packages.py
-├── training_summaries.py
+├── plot_rfs.py                 # post-grid search plots of changes in mean CCC given different random forest parameters
+├── plot_xgb.py                 # post-grid search plots of changes in mean CCC given different GBT parameters
+├── pull_garbage_packages.py    # archive of how I pulled the garbage packges shown in `maps/package_list.xlsx`
+├── training_summaries.py       # creates vetting table - mean ccc across 500 test datasets for random forest and GBT
 ```
 
-## thesis_data_prep
+## _thesis_data_prep_
 ### Overview
-
-- expected column outputs
-
-```
-.
-├── launch_mcod_mapping.py
-├── mcod_mapping.py
-├── run_phase_format_map.py
-```
-
-## thesis_utils
-### Overview
+Controlled through the `MCoDLauncher`, this folder houses the scripts to format all input data for the bag of words. Data is prepped (and saved) separately for X59/Y34, and you have the ability to choose which intermediate cause you want to launch (or both), along with flexibility in which sources to format (if not all of them). Current input data consists of all available multiple cause of death data in the GBD (with the exception of South Africa). The `MCauseLauncher` sources scripts that first standardize data in it's rawest form and formats it in a way complementary to multiple cause of death analysis done at IHME. Important output columns include all demographic-related information (age_group_id, sex_id, year_id, location_id), all ICD coded information (formatted as "cause" for the underlying cause of death, then "multiple_cause_x" for x causes in the chain) and some columns specific to IHME cause of death formatting and processing (nid, extract_type_id, code_system_id). Once this standardization is complete, formatting is done specifically for the bag of words model. Key steps are 1. Dropping rows where there is only a single multiple cause of death that is the same as the underlying cause of death 2. Dropping rows without causes in the chain 3. Removing any duplicated ICD codes for a given row 4. Subsetting to only injuries/X59/Y34 deaths 5. Removing any non N-codes in the chain. The `MCoDLauncher` also gives the flexibility to check the formatted datasets were saved in their expected folders.
 
 ```
 .
-├── clf_switching.py
-├── directories.py
-├── grid_search.py
-├── misc.py
-├── model_evaluation.py
-├── modeling.py
+├── launch_mcod_mapping.py      # houses the `MCoDLauncher` that launches all the formatting things
+├── mcod_mapping.py             # houses an `MCoDMapper` class that standardizes the data for IHME multiple cause of death analyses
+├── run_phase_format_map.py     # calls the `MCoDMapper` and performs all machine learning specific formatting
 ```
+
+## _thesis_utils_
+Some functions to help you along the way :)
+
 -----
-\* This project is dependent on multiple cause of death data belonging to IHME, sources IHME internal functions, and reads in files housed in IHME's internal file system.
+\* This project is dependent on multiple cause of death data belonging to IHME, sources IHME internal functions, and reads in files/sources a conda environment housed in IHME's internal file system.
 
 
