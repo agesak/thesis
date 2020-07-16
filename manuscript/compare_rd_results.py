@@ -125,12 +125,6 @@ def update_model_dict(int_cause):
 
 model_dict = {"x59":"", "y34":""}
 
-for int_cause in ["x59", "y34"]:
-    best_model = choose_best_naive_bayes(int_cause)
-    best_model = best_model.replace("Mean_", "")
-    model_dict.update({f"{int_cause}":best_model})
-
-
 # inconsistency here with short name for naive bayes
 # here short name is "nb" until the best naive bayes 
 # is identified (then short name will be either
