@@ -27,8 +27,6 @@ def format_classifier_results(int_cause, short_name):
     df["prop"] = df.groupby(["age_group_id", "sex_id", "location_id", "year_id"], as_index=False)[
         f"{int_cause}"].transform(lambda x: x / float(x.sum(axis=0)))
 
-    df.rename(columns={"prop":"prop_thesis", f"{int_cause}":f"{int_cause}_deaths_thesis"})
-
     return df
 
 
@@ -154,3 +152,18 @@ for int_cause in ["x59", "y34"]:
 # evaluation metrics across 500 test datasets
 for int_cause in ["x59", "y34"]:
     choose_best_model(int_cause, nb = model_dict[int_cause])
+
+# for aggregating into 1 csv for tableau
+for int_cause in ["x59", "y34"]:
+    dfs = []
+    for short_name in ["rf", "nn", "xgb"]:
+        df = pd.read_csv(f"/home/j/temp/agesak/thesis/model_results/{DATE}/{DATE}_{int_cause}_{short_name}_predictions.csv")
+        df.rename(columns={"prop_thesis":f"prop_{short_name}", f"{int_cause}_deaths_thesis":f"{int_cause}_deaths_{short_name}"}, inplace=True)
+        df.drop(columns=["prop_GBD2019", "x59_deaths_GBD2019"], inplace=True)
+        dfs.append(df)
+        df = pd.read_csv(f"/home/j/temp/agesak/thesis/model_results/{DATE}/{DATE}_{int_cause}_bernoulli_nb_predictions.csv")
+        df.rename(columns={"prop_thesis":"prop_bernoulli_nb", f"{int_cause}_deaths_thesis":f"{int_cause}_deaths_bernoulli_nb"}, inplace=True)
+        dfs.append(df)
+        dfs = reduce(lambda left, right: pd.merge(left, right, on=[x for x in list(df) if ("prop" not in x) & ("GBD2019" not in x) & (int_cause not in x)],
+                                                     how='outer'), dfs)
+        dfs.to_csv(f"/home/j/temp/agesak/thesis/model_results/{DATE}/{DATE}_{int_cause}_ml_predictions_summary.csv")

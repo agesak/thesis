@@ -6,8 +6,8 @@ library(data.table)
 library(stringr)
 library(ggplot2)
 
-CLASSIFIERS <- list("xgb"="Gradient Boosting","multi_nb"="Naive Bayes", "rf"="Random Forest", "nn"="Deep Neural Network")
-DATE <- "2020_05_23_most_detailed"
+CLASSIFIERS <- list("xgb"="Gradient Boosting","bernoulli_nb"="Bernoulli Naive Bayes", "rf"="Random Forest", "nn"="Deep Neural Network")
+DATE <- "2020_07_08_grouped_ncode"
 
 prep_data <- function(df, group_cols, int_cause_col, prop_type){
   df <- fread(df)

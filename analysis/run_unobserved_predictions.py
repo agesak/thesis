@@ -13,6 +13,10 @@ from sklearn.naive_bayes import MultinomialNB, BernoulliNB, ComplementNB
 from keras.wrappers.scikit_learn import KerasClassifier
 from xgboost import XGBClassifier
 
+## add for quick run
+from thesis_utils.model_evaluation import get_best_fit
+from cod_prep.claude.claude_io import makedirs_safely
+
 DEM_COLS = ["age_group_id", "sex_id", "location_id", "year_id"]
 
 
@@ -64,10 +68,12 @@ def main(data_dir, predicted_test_dir, int_cause, short_name,
     else:
         x_col = "cause_info"
 
-    summaries = read_in_summary_stats(predicted_test_dir)
+    ## comment out for quick run
+    ## summaries = read_in_summary_stats(predicted_test_dir)
 
-    # summarize evaluation metrics across the datasets
-    aggregate_evaluation_metrics(summaries, predicted_test_dir)
+    ## comment out for quick run
+    ## summarize evaluation metrics across the datasets
+    ## aggregate_evaluation_metrics(summaries, predicted_test_dir)
 
     # read in test df
     test_df = pd.read_csv(
@@ -88,7 +94,10 @@ def main(data_dir, predicted_test_dir, int_cause, short_name,
     param_df = param_df[[x for x in list(param_df) if short_name in x]]
     param_df[f"{short_name}"] = param_df[f"{short_name}"].str.replace(
         "clf__estimator__", "")
-    params = summaries.best_model_params.iloc[0]
+    ## comment out for quick run
+    ## params = summaries.best_model_params.iloc[0]
+    ## add for quick run
+    params = get_best_fit(data_dir, short_name)
 
     # format best params to feed to classifier
     if isinstance(params, six.string_types):
@@ -149,6 +158,9 @@ def main(data_dir, predicted_test_dir, int_cause, short_name,
         print_log_message("converting unobserved data to dense matrix")
         new_counts = new_counts.todense()
     unobserved_df["predictions"] = model.predict(new_counts)
+
+    ## add for quick run
+    makedirs_safely(predicted_test_dir)
 
     print_log_message("writing to df")
     unobserved_df.to_csv(f"{predicted_test_dir}/model_predictions.csv")

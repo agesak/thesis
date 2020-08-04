@@ -126,8 +126,8 @@ class ModelLauncher():
         params = [model_dir, predicted_test_dir, self.int_cause,
                   short_name, ModelLauncher.model_dict[short_name], self.age_feature, self.dem_feature]
         worker = f"/homes/agesak/thesis/analysis/run_unobserved_predictions.py"
-        memory_dict = {"rf": 70, "multi_nb": 12, "bernoulli_nb": 12,
-                       "complement_nb": 12, "xgb": 40, "svm": 40,
+        memory_dict = {"rf": 70, "multi_nb": 20, "bernoulli_nb": 20,
+                       "complement_nb": 20, "xgb": 40, "svm": 40,
                        "svm_bag": 20, "nn": 350}
         submit_mcod(jobname, "python", worker, cores=2, memory=f"{memory_dict[short_name]}G",
                     params=params, verbose=True, logging=True,
