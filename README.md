@@ -108,6 +108,6 @@ Some functions to help you along the way :)
 
 
 -----
-\* This project is dependent on multiple cause of death data belonging to IHME, sources IHME internal functions, and reads in files/sources a conda environment housed in IHME's internal file system.
+\* This project is dependent on multiple cause of death data belonging to the Institute for Health Metrics and Evaluation (IHME), sources IHME internal functions, and reads in files/sources a conda environment housed in IHME's internal file system.
 
 
