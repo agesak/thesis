@@ -17,7 +17,7 @@ This repository contains code for my 2020 master's thesis exploring machine lear
 ```
 
 ## Getting Starting
-To obtain the pytho environment used in this analysis run\*:
+To obtain the python environment used in this analysis run\*:
 ```bash
 conda env create -f environment.yml
 ```
