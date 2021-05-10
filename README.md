@@ -1,6 +1,7 @@
 # Machine Learning for Injuries Cause of Death Assignment: A New Method for the Global Burden of Disease Study
-## _A master's thesis completed for the University of Washington Master of Public Health Program (2020)_
-## _Kareha Agesa_
+### A master's thesis completed for the University of Washington Master of Public Health Program (2020)
+### Thesis committee: Dr. Mohsen Naghavi and Dr. Abraham Flaxman
+### Kareha Agesa
 
 ## Overview
 This repository contains code for my 2020 master's thesis exploring machine learning for X59 and Y34 garbage code redistribution. The code is structured as follows:
